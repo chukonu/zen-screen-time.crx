@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "moduleResolution": "Bundler",
+    "target": "ES2020",
+    "useDefineForClassFields": false
+  }
+}

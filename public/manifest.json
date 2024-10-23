@@ -1,0 +1,27 @@
+{
+    "name": "Zen Screen Time",
+    "description": "Track and limit time spent on websites",
+    "version": "1.0",
+    "manifest_version": 3,
+    "permissions": [
+        "unlimitedStorage"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": "zen.png"
+    },
+    "background": {
+        "service_worker": "zen-screen-time-background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "js": [
+                "zen-screen-time-content.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}
