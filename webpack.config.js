@@ -8,7 +8,7 @@ const prefix = 'zen-screen-time';
 const title = 'Zen Screen Time';
 
 const targets = {
-  firefox: '90',
+  chrome: '116',
 };
 
 module.exports = {
@@ -17,6 +17,7 @@ module.exports = {
     content: './src/content/index.js',
     popup: './src/popup/index.js',
     settings: './src/settings/index.ts',
+    sidepanel: './src/side-panel/side-panel.ts',
   },
   output: {
     filename: `${prefix}-[name].js`,
@@ -28,6 +29,14 @@ module.exports = {
       filename: 'popup.html',
       template: './src/popup/index.html',
       title
+    }),
+    new HtmlWebpackPlugin({
+      chunks: ['sidepanel'],
+      filename: 'side-panel.html',
+      template: './src/side-panel/side-panel.html',
+      title: 'Zen Screen Time side panel',
+      inject: 'head',
+      scriptLoading: 'defer',
     }),
     new CopyPlugin({
       patterns: [

@@ -4,10 +4,10 @@
     "version": "1.0",
     "manifest_version": 3,
     "permissions": [
-        "unlimitedStorage"
+        "sidePanel"
     ],
     "action": {
-        "default_popup": "popup.html",
+        "default_title": "Click to open side panel",
         "default_icon": "zen.png"
     },
     "background": {
@@ -23,5 +23,8 @@
                 "<all_urls>"
             ]
         }
-    ]
+    ],
+    "side_panel": {
+        "default_path": "side-panel.html"
+    }
 }

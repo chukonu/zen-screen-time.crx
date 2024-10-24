@@ -1,5 +1,4 @@
 class Pulse {
-
   #isStarted = false;
   #timeoutId = null;
   #interval;
@@ -44,8 +43,14 @@ class Pulse {
     const duration = this.#interval / 1000;
 
     try {
-      const sendMessage = chrome.runtime?.sendMessage({ origin, startTime, duration })
-        .catch(err => console.debug('Error in sending message. Ignored silently. ', err));
+      const sendMessage = chrome.runtime
+        ?.sendMessage({
+          type: 'pulse',
+          payload: { origin, startTime, duration },
+        })
+        .catch((err) =>
+          console.debug('Error in sending message. Ignored silently. ', err),
+        );
 
       if (!sendMessage) {
         console.debug('Runtime not available. Ignored.');
@@ -53,7 +58,9 @@ class Pulse {
     } catch (error) {
       // fix the error "Extension context invalidated."
       this.stop();
-      console.info('[Zen Screen Time] Stopped tracking screen time on this page due to an error in calling Chrome extension runtime. This might be fixed by reloading the page.');
+      console.info(
+        '[Zen Screen Time] Stopped tracking screen time on this page due to an error in calling Chrome extension runtime. This might be fixed by reloading the page.',
+      );
     }
   }
 
