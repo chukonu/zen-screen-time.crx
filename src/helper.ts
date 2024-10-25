@@ -1,19 +1,20 @@
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 
 export const formatMillis = (millis: number): string =>
   DateTime.fromMillis(millis).toUTC().toString();
 
-export const roundToHour = (millis: number): number => {
-  const original = DateTime.fromMillis(millis).toObject();
+export const startOfHour = (millis: number): number =>
+  DateTime.fromMillis(millis).startOf('hour').toMillis();
 
-  const hour = DateTime.fromObject({
-    ...original,
-    minute: 0,
-    second: 0,
-    millisecond: 0,
+export const formatDuration = (seconds: number): string =>
+  Duration.fromObject({ seconds }).rescale().toHuman({
+    unitDisplay: 'narrow',
+    listStyle: 'narrow',
+
+    // set type to unit to prevent commas between components
+    // overwrite incorrect type
+    //@ts-ignore
+    type: 'unit',
   });
-
-  return hour.toUTC().toMillis();
-};
 
 export const SECOND = 1000;

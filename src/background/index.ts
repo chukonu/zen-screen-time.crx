@@ -1,3 +1,3 @@
-import { App } from '../App';
+import { ServiceWorker } from '../ServiceWorker';
 
-new App().start();
+new ServiceWorker().start();

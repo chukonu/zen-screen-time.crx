@@ -1,17 +1,18 @@
-import { concatMap, Observable, of, switchMap, tap } from 'rxjs';
+import { concatMap, Observable, of, tap } from 'rxjs';
 import { Pulse } from '../Pulse';
 import { formatMillis } from '../helper';
-
-interface ObjectStore<T> {
-  add(object: T): Observable<T>;
-}
+import { DateTime } from 'luxon';
 
 const DB_VER = 1;
 const PULSE_STORENAME = 'pulses';
 const ORIGIN_TIME_IDX = 'origin_time';
 const ORIGIN_IDX = 'origin';
+const TIME_IDX = 'start_time';
 
-function openIndexedDb(name: string, upgradeHandler: (db: IDBDatabase) => void): Observable<IDBDatabase> {
+function openIndexedDb(
+  name: string,
+  upgradeHandler: (db: IDBDatabase) => void,
+): Observable<IDBDatabase> {
   return new Observable((subscriber) => {
     const req = indexedDB.open(name, DB_VER);
     req.onsuccess = function (event) {
@@ -30,12 +31,16 @@ function openIndexedDb(name: string, upgradeHandler: (db: IDBDatabase) => void):
 }
 
 function createPulseStore(db: IDBDatabase) {
-  const store = db.createObjectStore(PULSE_STORENAME, { keyPath: 'id', autoIncrement: true });
+  const store = db.createObjectStore(PULSE_STORENAME, {
+    keyPath: 'id',
+    autoIncrement: true,
+  });
   store.createIndex(ORIGIN_TIME_IDX, ['origin', 'startTime'], { unique: true });
   store.createIndex(ORIGIN_IDX, 'origin', { unique: false });
+  store.createIndex(TIME_IDX, 'startTime', { unique: false });
 }
 
-export class PulseStore implements ObjectStore<Pulse> {
+export class PulseStore {
   #dbName: string;
   #db: IDBDatabase;
 
@@ -43,46 +48,33 @@ export class PulseStore implements ObjectStore<Pulse> {
     this.#dbName = dbName;
   }
 
-  add(pulse: Pulse): Observable<Pulse> {
-    return this.#openDb().pipe(
-      tap(db => this.#db = db),
-      switchMap<IDBDatabase, Observable<Pulse>>(db => new Observable((subscriber) => {
-        const transaction = db.transaction(PULSE_STORENAME, 'readwrite');
-        transaction.oncomplete = function (event) {
-          console.log('transaction completed');
-          subscriber.next(pulse);
-          subscriber.complete();
-        };
-        transaction.onerror = function (event) {
-          console.error('transaction error', event);
-          subscriber.error(event.target);
-        };
-        const store = transaction.objectStore(PULSE_STORENAME);
-        store.add(pulse);
-      }))
-    );
+  query(date: number): Observable<Pulse> {
+    return this.#openCursor(date);
   }
 
   update(pulse: Pulse): Observable<Pulse> {
     const { origin, startTime, duration: increment } = pulse;
     const db$ = this.#openDb();
 
-    const startTransaction = concatMap((db: IDBDatabase): Observable<IDBTransaction> =>
-      new Observable(subscriber => {
-        const transaction = db.transaction(PULSE_STORENAME, 'readwrite');
-        transaction.oncomplete = function (event) {
-          console.debug('Transaction completed');
-          subscriber.complete();
-        };
-        transaction.onerror = function (event) {
-          subscriber.error(this.error);
-        };
-        subscriber.next(transaction);
-      }));
+    const startTransaction = concatMap(
+      (db: IDBDatabase): Observable<IDBTransaction> =>
+        new Observable((subscriber) => {
+          const transaction = db.transaction(PULSE_STORENAME, 'readwrite');
+          transaction.oncomplete = function (event) {
+            console.debug('Transaction completed');
+            subscriber.complete();
+          };
+          transaction.onerror = function (event) {
+            subscriber.error(this.error);
+          };
+          subscriber.next(transaction);
+        }),
+    );
 
     const openCursor = (t: IDBTransaction): Observable<IDBCursorWithValue> =>
-      new Observable(subscriber => {
-        const req = t.objectStore(PULSE_STORENAME)
+      new Observable((subscriber) => {
+        const req = t
+          .objectStore(PULSE_STORENAME)
           .index(ORIGIN_TIME_IDX)
           .openCursor(IDBKeyRange.only([origin, startTime]));
 
@@ -98,7 +90,7 @@ export class PulseStore implements ObjectStore<Pulse> {
       });
 
     const addPulse = (t: IDBTransaction): Observable<Pulse> =>
-      new Observable(subscriber => {
+      new Observable((subscriber) => {
         const req = t.objectStore(PULSE_STORENAME).add(pulse);
         req.onsuccess = function (event) {
           const id = this.result;
@@ -111,10 +103,12 @@ export class PulseStore implements ObjectStore<Pulse> {
       });
 
     const findAndUpdate = (cursor: IDBCursorWithValue): Observable<Pulse> =>
-      new Observable(subscriber => {
+      new Observable((subscriber) => {
         const currentVal = cursor.value;
 
-        console.debug(`Value at cursor: {id=${currentVal.id}; origin=${currentVal.origin}; duration=${currentVal.duration}; startTime=${formatMillis(currentVal.startTime)} }`);
+        console.debug(
+          `Value at cursor: {id=${currentVal.id}; origin=${currentVal.origin}; duration=${currentVal.duration}; startTime=${formatMillis(currentVal.startTime)} }`,
+        );
 
         const newVal = {
           ...currentVal,
@@ -141,22 +135,87 @@ export class PulseStore implements ObjectStore<Pulse> {
 
       tap(() => console.debug(`Transaction started`)),
 
-      concatMap(transaction => openCursor(transaction).pipe(
-        tap(x => console.debug(`Cursor opened. Is null: ${!!!x}`)),
+      concatMap((transaction) =>
+        openCursor(transaction).pipe(
+          tap((x) => console.debug(`Cursor opened. Is null: ${!!!x}`)),
 
-        // if cursor is not null, that means there is an existing record.
-        // insert a new object if cursor is not present
-        concatMap(cursor => cursor
-          ? findAndUpdate(cursor)
-            .pipe(tap({ subscribe: () => console.debug('Updating an existing record') }))
-          : addPulse(transaction)
-            .pipe(tap({ subscribe: () => console.debug('Adding a new record') }))
+          // if cursor is not null, that means there is an existing record.
+          // insert a new object if cursor is not present
+          concatMap((cursor) =>
+            cursor
+              ? findAndUpdate(cursor).pipe(
+                  tap({
+                    subscribe: () =>
+                      console.debug('Updating an existing record'),
+                  }),
+                )
+              : addPulse(transaction).pipe(
+                  tap({
+                    subscribe: () => console.debug('Adding a new record'),
+                  }),
+                ),
+          ),
         ),
-      )),
+      ),
     );
   }
 
   #openDb(): Observable<IDBDatabase> {
-    return this.#db ? of(this.#db) : openIndexedDb(this.#dbName, createPulseStore);
+    return this.#db
+      ? of(this.#db)
+      : openIndexedDb(this.#dbName, createPulseStore);
   }
+
+  #newTransaction(): Observable<IDBTransaction> {
+    return this.#openDb().pipe(
+      concatMap(
+        (db: IDBDatabase): Observable<IDBTransaction> =>
+          new Observable((subscriber) => {
+            const transaction = db.transaction(PULSE_STORENAME, 'readonly');
+            transaction.oncomplete = function (event) {
+              console.debug('Transaction completed');
+              subscriber.complete();
+            };
+            transaction.onerror = function (event) {
+              subscriber.error(this.error);
+            };
+            subscriber.next(transaction);
+            console.debug('Transaction started');
+          }),
+      ),
+    );
+  }
+
+  #openCursor(date: number): Observable<Pulse> {
+    return this.#newTransaction().pipe(
+      concatMap(
+        (t: IDBTransaction): Observable<Pulse> =>
+          new Observable((subscriber) => {
+            const req = t
+              .objectStore(PULSE_STORENAME)
+              .index(TIME_IDX)
+              .openCursor(
+                IDBKeyRange.bound(date, plusOneDay(date), false, true),
+              );
+            req.onsuccess = function (event) {
+              const cursor = this.result;
+              if (cursor) {
+                subscriber.next(cursor.value as Pulse);
+                cursor.continue();
+              } else {
+                subscriber.complete();
+              }
+            };
+            req.onerror = function (event) {
+              // subscriber.error(this.error);
+              subscriber.complete();
+            };
+          }),
+      ),
+    );
+  }
+}
+
+function plusOneDay(date: number) {
+  return DateTime.fromMillis(date).plus({ day: 1 }).toUTC().toMillis();
 }
