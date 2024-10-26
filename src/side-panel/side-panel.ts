@@ -1,11 +1,40 @@
-import { html, LitElement } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { css, html, LitElement } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
 import { DateTime } from 'luxon';
 import { formatDuration } from '../helper';
 import _ from 'lodash';
 
+export type HourlyActivityDataPoint = {
+  startTime: number;
+  durationInMinutes: number;
+};
+
 @customElement('zen-side-panel')
 export class SidePanel extends LitElement {
+  static styles = css`
+    li.site {
+      display: inline-block;
+      flex: 1 1 50%;
+      margin: 1em 0;
+      list-style-type: none;
+    }
+
+    ul.breakdown {
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .total {
+      font-size: 2em;
+      margin: 0.5em 0;
+    }
+
+    .site-time {
+      opacity: 0.75;
+    }
+  `;
+
   @property()
   today: DateTime = DateTime.now().startOf('day');
 
@@ -14,6 +43,9 @@ export class SidePanel extends LitElement {
 
   @property()
   totalTime?: number;
+
+  @state()
+  private hourlyActivity?: HourlyActivityDataPoint[];
 
   #intervalId: ReturnType<typeof setTimeout>;
 
@@ -36,6 +68,14 @@ export class SidePanel extends LitElement {
       (response) => {
         this.records = response;
 
+        this.hourlyActivity = _(this.records)
+          .groupBy((x) => `${x.startTime}`)
+          .map((records, key) => ({
+            startTime: _.head(records).startTime,
+            durationInMinutes: _.sumBy(records, (x) => x.duration) / 60,
+          }))
+          .value();
+
         // merge records of the same site
         this.records = _(this.records)
           .groupBy((x) => x.origin)
@@ -57,17 +97,14 @@ export class SidePanel extends LitElement {
   }
 
   render() {
-    return html`<p>${this.today.toLocaleString(DateTime.DATE_MED)}</p>
-      <p>${this.today.toMillis()}</p>
-      <p>${this.today.toUTC().toMillis()}</p>
-      <p>${this.today.zoneName}</p>
-      <h2>${formatDuration(this.totalTime)}</h2>
-      <ul>
+    return html`<div class="total">${formatDuration(this.totalTime)}</div>
+      <zen-bar-chart .data=${this.hourlyActivity}></zen-bar-chart>
+      <ul class="breakdown">
         ${this.records?.map(
           (record) =>
-            html`<li>
-              ${record.origin.replace(/(http|https):\/\//, '')}
-              (${formatDuration(record.duration)})
+            html`<li class="site">
+              <div>${record.origin.replace(/(http|https):\/\//, '')}</div>
+              <div class="site-time">${formatDuration(record.duration)}</div>
             </li>`,
         )}
       </ul>`;

@@ -1,7 +1,7 @@
 const path = require('node:path');
 
-const CopyPlugin = require("copy-webpack-plugin");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const outDir = path.join(__dirname, 'dist');
 const prefix = 'zen-screen-time';
@@ -17,7 +17,7 @@ module.exports = {
     content: './src/content/index.js',
     popup: './src/popup/index.js',
     settings: './src/settings/index.ts',
-    sidepanel: './src/side-panel/side-panel.ts',
+    sidepanel: './src/side-panel/index.ts',
   },
   output: {
     filename: `${prefix}-[name].js`,
@@ -28,7 +28,7 @@ module.exports = {
       chunks: ['popup'],
       filename: 'popup.html',
       template: './src/popup/index.html',
-      title
+      title,
     }),
     new HtmlWebpackPlugin({
       chunks: ['sidepanel'],
@@ -39,20 +39,18 @@ module.exports = {
       scriptLoading: 'defer',
     }),
     new CopyPlugin({
-      patterns: [
-        { context: 'public', from: '**/*' },
-      ],
+      patterns: [{ context: 'public', from: '**/*' }],
     }),
   ],
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.
-    extensions: [".ts", ".tsx", ".js"],
+    extensions: ['.ts', '.tsx', '.js'],
     // Add support for TypeScripts fully qualified ESM imports.
     extensionAlias: {
-      ".js": [".js", ".ts"],
-      ".cjs": [".cjs", ".cts"],
-      ".mjs": [".mjs", ".mts"]
-    }
+      '.js': ['.js', '.ts'],
+      '.cjs': ['.cjs', '.cts'],
+      '.mjs': ['.mjs', '.mts'],
+    },
   },
   module: {
     rules: [
@@ -70,7 +68,7 @@ module.exports = {
             ],
           },
         },
-      }
+      },
     ],
   },
 };
