@@ -68,6 +68,8 @@ export class SidePanel extends LitElement {
       (response) => {
         this.records = response;
 
+        this.totalTime = _(this.records).sumBy((x) => x.duration);
+
         this.hourlyActivity = _(this.records)
           .groupBy((x) => `${x.startTime}`)
           .map((records, key) => ({
@@ -88,16 +90,21 @@ export class SidePanel extends LitElement {
           .take(8)
           .value();
 
-        this.totalTime = _(this.records).sumBy((x) => x.duration);
-
         // not needed:
         // this.requestUpdate();
       },
     );
   }
 
+  openSettings() {
+    chrome.tabs
+      .create({ url: 'settings.html' })
+      .catch((err) => console.error(`Error in opening Settings: ${err}`));
+  }
+
   render() {
-    return html`<div class="total">${formatDuration(this.totalTime)}</div>
+    return html`<div><button @click=${this.openSettings}>Settings</button></div>
+      <div class="total">${formatDuration(this.totalTime)}</div>
       <zen-bar-chart .data=${this.hourlyActivity}></zen-bar-chart>
       <ul class="breakdown">
         ${this.records?.map(

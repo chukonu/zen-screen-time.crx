@@ -14,11 +14,18 @@ export class BarChartWrapper extends LitElement {
   @state()
   private contentWidth?: number;
 
-  private chartHeight: number = 120;
+  @state()
+  private chartHeight?: number;
 
   #resizeObserver: ResizeObserver = new ResizeObserver((entries) => {
     const [body] = entries;
-    this.contentWidth = body.contentRect.width;
+    // wrap the updating of the measurements with requestAnimationFrame to avoid an infinite loop, fixing "ResizeObserver loop completed with undelivered notifications".
+    requestAnimationFrame(() => {
+      if (body.contentRect.width !== this.contentWidth) {
+        this.contentWidth = body.contentRect.width;
+        this.chartHeight = Math.ceil(this.contentWidth / 2.87);
+      }
+    });
   });
 
   connectedCallback() {
@@ -38,8 +45,8 @@ export class BarChartWrapper extends LitElement {
       ${this.contentWidth && this.chartHeight
         ? html` <zen-d3-bar-chart
             .data=${this.data}
-            width="${this.contentWidth}"
-            height="${this.chartHeight}"
+            .width="${this.contentWidth}"
+            .height="${this.chartHeight}"
           ></zen-d3-bar-chart>`
         : html``}
     </div>`;
@@ -130,13 +137,15 @@ class D3BarChart extends LitElement {
       .call(
         d3.axisBottom(x).tickSizeOuter(0).ticks(3).tickSize(0).tickFormat(tfX),
       )
+      // grey domain line
+      .call((g) => g.select('.domain').attr('stroke', '#d9d9d9'))
       // dashed vertical gridlines
       .call((g) =>
         g
           .selectAll('.tick line')
           .clone()
           .attr('y2', this.height - this.#margin.top - this.#margin.bottom + 7)
-          .attr('stroke-opacity', 0.2)
+          .attr('stroke', '#d9d9d9')
           .attr('stroke-dasharray', '2')
           .attr(
             'transform',
@@ -164,7 +173,8 @@ class D3BarChart extends LitElement {
       .call((g) =>
         g
           .selectAll('.tick line')
-          .attr('stroke-opacity', (d) => (d === 1 ? null : 0.2))
+          .attr('stroke', '#d9d9d9')
+          // .attr('stroke-opacity', (d) => (d === 1 ? null : 0.2))
           .clone()
           .attr('x2', this.width - this.#margin.left - this.#margin.right)
           .attr(

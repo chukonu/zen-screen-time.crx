@@ -1,5 +1,6 @@
 import {
   concatMap,
+  defaultIfEmpty,
   filter,
   last,
   map,
@@ -56,6 +57,10 @@ export class ServiceWorker {
         concatMap(({ payload, sendResponse }) =>
           this.#pulseStore.query(payload.date as number).pipe(
             scan((arr: Pulse[], pulse) => Array.of(...arr, pulse), []),
+            // default to an empty array if the source observable is empty:
+            defaultIfEmpty([]),
+
+            // throws error if the source observable is empty:
             last(),
 
             // sort array descendingly by duration

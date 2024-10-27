@@ -38,6 +38,14 @@ module.exports = {
       inject: 'head',
       scriptLoading: 'defer',
     }),
+    new HtmlWebpackPlugin({
+      chunks: ['settings'],
+      filename: 'settings.html',
+      template: './src/settings/settings.html',
+      title: 'Settings | Zen Screen Time',
+      inject: 'head',
+      scriptLoading: 'defer',
+    }),
     new CopyPlugin({
       patterns: [{ context: 'public', from: '**/*' }],
     }),
