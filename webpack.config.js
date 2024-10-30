@@ -42,7 +42,7 @@ module.exports = {
       chunks: ['settings'],
       filename: 'settings.html',
       template: './src/settings/settings.html',
-      title: 'Settings | Zen Screen Time',
+      title: 'Settings',
       inject: 'head',
       scriptLoading: 'defer',
     }),
@@ -64,6 +64,10 @@ module.exports = {
     rules: [
       // loading TS files
       { test: /\.([cm]?ts|tsx)$/, loader: 'ts-loader' },
+
+      // SVG files, utilising Asset Modules in Webpack 5
+      { test: /\.svg$/, type: 'asset/source' },
+
       {
         test: /\.js$/,
         exclude: /node_modules/,

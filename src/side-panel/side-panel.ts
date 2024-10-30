@@ -3,14 +3,39 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { DateTime } from 'luxon';
 import { formatDuration } from '../helper';
 import _ from 'lodash';
+import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
+import settingsIconPath from '../icons_svg/settings.fragment.svg';
+import forwardIconPath from '../icons_svg/forward.fragment.svg';
+import backwardIconPath from '../icons_svg/backward.fragment.svg';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
   durationInMinutes: number;
 };
 
+@customElement('zen-router-outlet')
+export class ZenRouter extends MemoryRouter {
+  routes: RouteConfig[] = [
+    {
+      path: '/',
+      render: () => html`<zen-side-panel-home></zen-side-panel-home>`,
+    },
+    {
+      path: '/more-details',
+      render: () => html`<zen-more-details></zen-more-details>`,
+    },
+  ];
+}
+
 @customElement('zen-side-panel')
 export class SidePanel extends LitElement {
+  render() {
+    return html`<zen-router-outlet></zen-router-outlet>`;
+  }
+}
+
+@customElement('zen-side-panel-home')
+export class SidePanelHome extends LitElement {
   static styles = css`
     li.site {
       display: inline-block;
@@ -33,15 +58,37 @@ export class SidePanel extends LitElement {
     .site-time {
       opacity: 0.75;
     }
+
+    .heading {
+      display: flex;
+      justify-items: flex-start;
+      align-items: center;
+    }
+
+    .footer {
+      display: flex;
+    }
+
+    .spacer {
+      flex: 1 1 100%;
+    }
+
+    .current-date {
+      margin-right: 10px;
+    }
+
+    .footer .show-more {
+      flex: 1 1 auto;
+    }
   `;
 
-  @property()
+  @property({ attribute: false })
   today: DateTime = DateTime.now().startOf('day');
 
-  @property()
+  @property({ type: Array })
   records?: { origin: string; startTime: number; duration: number }[];
 
-  @property()
+  @property({ type: Number })
   totalTime?: number;
 
   @state()
@@ -102,9 +149,28 @@ export class SidePanel extends LitElement {
       .catch((err) => console.error(`Error in opening Settings: ${err}`));
   }
 
+  openMoreDetails() {
+    routeTo('/more-details');
+  }
+
   render() {
-    return html`<div><button @click=${this.openSettings}>Settings</button></div>
-      <div class="total">${formatDuration(this.totalTime)}</div>
+    return html`<div class="heading">
+        <div class="current-date">Today</div>
+        <zen-svg-icon-button
+          .iconPath=${backwardIconPath}
+        ></zen-svg-icon-button>
+        <zen-svg-icon-button .iconPath=${forwardIconPath}></zen-svg-icon-button>
+
+        <div class="spacer"></div>
+
+        <zen-svg-icon-button
+          .iconPath=${settingsIconPath}
+          @click=${this.openSettings}
+        ></zen-svg-icon-button>
+      </div>
+      <div>
+        <div class="total">${formatDuration(this.totalTime)}</div>
+      </div>
       <zen-bar-chart .data=${this.hourlyActivity}></zen-bar-chart>
       <ul class="breakdown">
         ${this.records?.map(
@@ -114,6 +180,11 @@ export class SidePanel extends LitElement {
               <div class="site-time">${formatDuration(record.duration)}</div>
             </li>`,
         )}
-      </ul>`;
+      </ul>
+      <div class="footer">
+        <zen-default-button class="show-more" @click=${this.openMoreDetails}>
+          Show More
+        </zen-default-button>
+      </div>`;
   }
 }

@@ -68,7 +68,7 @@ class D3BarChart extends LitElement {
     top: 20,
     right: 30,
     bottom: 30,
-    left: 10,
+    left: 1,
   };
 
   @query('#container', true)
