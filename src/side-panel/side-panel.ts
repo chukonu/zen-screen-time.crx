@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { DateTime } from 'luxon';
 import { formatDuration } from '../helper';
@@ -7,11 +7,23 @@ import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
 import settingsIconPath from '../icons_svg/settings.fragment.svg';
 import forwardIconPath from '../icons_svg/forward.fragment.svg';
 import backwardIconPath from '../icons_svg/backward.fragment.svg';
+import { repeat } from 'lit/directives/repeat.js';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
   durationInMinutes: number;
 };
+
+function faviconUrl(pageUrl: string): string {
+  const url = new URL(chrome.runtime.getURL('/_favicon/'));
+  url.searchParams.set('pageUrl', pageUrl);
+  url.searchParams.set('size', '32');
+  return url.toString();
+}
+
+function stripProtocol(origin: string): string {
+  return origin.replace(/(http|https):\/\//, '');
+}
 
 @customElement('zen-router-outlet')
 export class ZenRouter extends MemoryRouter {
@@ -40,8 +52,31 @@ export class SidePanelHome extends LitElement {
     li.site {
       display: inline-block;
       flex: 1 1 50%;
-      margin: 1em 0;
       list-style-type: none;
+
+      box-sizing: border-box;
+      padding: 8px;
+      margin: 2px 0;
+      border-radius: 4px;
+    }
+
+    .site .site-link {
+      display: inline-flex;
+    }
+
+    .site:hover {
+      background-color: #00000011;
+    }
+
+    .site .favicon {
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .favicon img {
+      width: 20px;
+      height: 20px;
     }
 
     ul.breakdown {
@@ -172,15 +207,30 @@ export class SidePanelHome extends LitElement {
         <div class="total">${formatDuration(this.totalTime)}</div>
       </div>
       <zen-bar-chart .data=${this.hourlyActivity}></zen-bar-chart>
-      <ul class="breakdown">
-        ${this.records?.map(
-          (record) =>
-            html`<li class="site">
-              <div>${record.origin.replace(/(http|https):\/\//, '')}</div>
-              <div class="site-time">${formatDuration(record.duration)}</div>
-            </li>`,
-        )}
-      </ul>
+      ${!this.records
+        ? nothing
+        : html`
+            <ul class="breakdown">
+              ${repeat(
+                this.records,
+                (x) => x.origin,
+                (record) =>
+                  html`<li class="site">
+                    <a class="site-link">
+                      <div class="favicon">
+                        <img src=${faviconUrl(record.origin)} />
+                      </div>
+                      <div>
+                        <div>${stripProtocol(record.origin)}</div>
+                        <div class="site-time">
+                          ${formatDuration(record.duration)}
+                        </div>
+                      </div>
+                    </a>
+                  </li>`,
+              )}
+            </ul>
+          `}
       <div class="footer">
         <zen-default-button class="show-more" @click=${this.openMoreDetails}>
           Show More
