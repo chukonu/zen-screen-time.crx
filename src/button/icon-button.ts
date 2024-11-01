@@ -20,19 +20,15 @@ export class SvgIconButton extends LitElement {
     }
 
     button:hover {
-      background-color: #00000011;
+      background-color: var(--zen-hover-background-color);
     }
 
     button:active {
-      background-color: #00000022;
+      background-color: var(--zen-active-background-color);
     }
 
     button svg {
-      transition: fill 0.2s ease-in;
-    }
-
-    button:hover svg {
-      fill: #000000;
+      fill: var(--zen-primary-color);
     }
   `;
 
@@ -46,7 +42,6 @@ export class SvgIconButton extends LitElement {
         height="24px"
         viewBox="0 -960 960 960"
         width="24px"
-        fill="#5f6368"
       >
         <path d=${this.iconPath} />
       </svg>

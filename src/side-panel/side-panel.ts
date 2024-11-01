@@ -1,13 +1,13 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { repeat } from 'lit/directives/repeat.js';
+import _ from 'lodash';
 import { DateTime } from 'luxon';
 import { formatDuration } from '../helper';
-import _ from 'lodash';
 import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
 import settingsIconPath from '../icons_svg/settings.fragment.svg';
 import forwardIconPath from '../icons_svg/forward.fragment.svg';
 import backwardIconPath from '../icons_svg/backward.fragment.svg';
-import { repeat } from 'lit/directives/repeat.js';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -65,7 +65,7 @@ export class SidePanelHome extends LitElement {
     }
 
     .site:hover {
-      background-color: #00000011;
+      background-color: var(--zen-hover-background-color);
     }
 
     .site .favicon {

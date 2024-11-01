@@ -5,6 +5,7 @@ import { customElement } from 'lit/decorators.js';
 export class DefaultButton extends LitElement {
   static styles = css`
     .default-button {
+      color: var(--zen-primary-color);
       font-size: 1.1em;
       line-height: 2em;
       padding-left: 20px;
@@ -19,12 +20,12 @@ export class DefaultButton extends LitElement {
     }
 
     .default-button:hover {
-      background-color: #00000011;
+      background-color: var(--zen-hover-background-color);
       cursor: pointer;
     }
 
     .default-button:active {
-      background-color: #00000022;
+      background-color: var(--zen-active-background-color);
     }
   `;
 
