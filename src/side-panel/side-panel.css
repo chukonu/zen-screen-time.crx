@@ -2,7 +2,10 @@ body {
   --zen-hover-background-color: #00000011;
   --zen-active-background-color: #00000016;
   --zen-primary-color: rgb(31, 31, 31);
+  --zen-secondary-text-color: rgb(68, 70, 71);
   --zen-background-color: rgb(255, 255, 255);
+  --zen-border-color: rgba(0, 0, 0, 0.06);
+  --zen-border-width: 0.666667px;
 
   color: var(--zen-primary-color);
   background-color: var(--zen-background-color);
@@ -14,5 +17,7 @@ body {
     --zen-hover-background-color: rgba(227, 227, 227, 0.08);
     --zen-active-background-color: rgba(227, 227, 227, 0.12);
     --zen-primary-color: #e3e3e3;
+    --zen-secondary-text-color: rgb(196, 199, 197);
+    --zen-border-color: rgba(255, 255, 255, 0.1);
   }
 }

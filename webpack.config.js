@@ -1,8 +1,11 @@
 const path = require('node:path');
+const _ = require('lodash');
 
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
+const isProd = process.env.NODE_ENV === 'production';
 const outDir = path.join(__dirname, 'dist');
 const prefix = 'zen-screen-time';
 const title = 'Zen Screen Time';
@@ -11,7 +14,10 @@ const targets = {
   chrome: '116',
 };
 
+const devModeProps = { mode: 'development', devtool: false };
+
 module.exports = {
+  ...(isProd ? {} : devModeProps),
   entry: {
     background: './src/background/index.ts',
     content: './src/content/index.js',
@@ -23,7 +29,7 @@ module.exports = {
     filename: `${prefix}-[name].js`,
     path: outDir,
   },
-  plugins: [
+  plugins: _.compact([
     new HtmlWebpackPlugin({
       chunks: ['popup'],
       filename: 'popup.html',
@@ -49,7 +55,8 @@ module.exports = {
     new CopyPlugin({
       patterns: [{ context: 'public', from: '**/*' }],
     }),
-  ],
+    isProd ? new MiniCssExtractPlugin() : null,
+  ]),
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.
     extensions: ['.ts', '.tsx', '.js'],
@@ -67,6 +74,15 @@ module.exports = {
 
       // SVG files, utilising Asset Modules in Webpack 5
       { test: /\.svg$/, type: 'asset/source' },
+
+      // CSS files
+      {
+        test: /\.css$/i,
+        use: [
+          isProd ? MiniCssExtractPlugin.loader : 'style-loader',
+          'css-loader',
+        ],
+      },
 
       {
         test: /\.js$/,

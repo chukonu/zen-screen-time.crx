@@ -1,6 +1,20 @@
 import { css, html, LitElement } from 'lit';
 import { customElement } from 'lit/decorators.js';
 
+export const buttonDefaultStyles = css`
+  button {
+    color: inherit;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    text-align: start;
+    font-size: inherit;
+    font-family: inherit;
+    cursor: pointer;
+  }
+`;
+
 @customElement('zen-default-button')
 export class DefaultButton extends LitElement {
   static styles = css`
@@ -12,8 +26,8 @@ export class DefaultButton extends LitElement {
       padding-right: 20px;
       background-color: transparent;
       border-radius: 20px;
-      border-width: 1.5px;
-      border-color: #d9d9d9;
+      border-width: var(--zen-border-width);
+      border-color: var(--zen-border-color);
       border-style: solid;
       width: 100%;
       transition: background-color 0.1s ease-in;

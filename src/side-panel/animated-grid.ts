@@ -3,6 +3,7 @@ import { customElement, property, queryAll } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { formatDuration } from '../helper';
 import { OriginActivity } from './side-panel';
+import { buttonDefaultStyles } from '../button/default-button';
 
 function faviconUrl(pageUrl: string): string {
   const url = new URL(chrome.runtime.getURL('/_favicon/'));
@@ -15,51 +16,91 @@ function stripProtocol(origin: string): string {
   return origin.replace(/(http|https):\/\//, '');
 }
 
+function fadeIn(x: HTMLElement) {
+  requestAnimationFrame(() => {
+    x.style.transition = '';
+    x.style.opacity = '0';
+
+    requestAnimationFrame(() => {
+      x.style.transition = 'opacity 500ms ease-in';
+      x.style.opacity = '1';
+    });
+  });
+}
+
+function slide(x: HTMLElement, dx: number, dy: number) {
+  requestAnimationFrame(() => {
+    x.style.transform = `translate(${dx}px, ${dy}px)`;
+    x.style.transition = 'transform 0s';
+
+    requestAnimationFrame(() => {
+      x.style.transform = '';
+      x.style.transition = 'transform 700ms ease-in-out';
+    });
+  });
+}
+
 @customElement('zen-animated-grid')
 export class AnimatedGrid extends LitElement {
-  static styles = css`
-    ul.breakdown {
-      padding: 0;
-      display: flex;
-      flex-wrap: wrap;
-    }
+  static styles = [
+    buttonDefaultStyles,
+    css`
+      ul.breakdown {
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+      }
 
-    li.site {
-      display: inline-block;
-      flex: 1 1 50%;
-      list-style-type: none;
+      ul.breakdown li {
+        list-style-type: none;
+      }
 
-      box-sizing: border-box;
-      padding: 8px;
-      margin: 2px 0;
-      border-radius: 4px;
+      li.site {
+        display: block;
+        flex: 1 1 50%;
 
-      /* position: relative; */
-    }
+        box-sizing: border-box;
+        margin: 2px 0;
+        border-radius: 4px;
+        width: 50%;
+      }
 
-    .site .site-link {
-      display: inline-flex;
-    }
+      .site .site-link {
+        align-items: center;
+        display: flex;
+        padding: 8px;
+        width: 100%;
+      }
 
-    .site:hover {
-      background-color: var(--zen-hover-background-color);
-    }
+      .site-link .site-info {
+        overflow: hidden;
+      }
 
-    .site .favicon {
-      margin-right: 10px;
-      display: flex;
-      align-items: center;
-    }
+      .site:hover {
+        background-color: var(--zen-hover-background-color);
+      }
 
-    .favicon img {
-      width: 20px;
-      height: 20px;
-    }
+      .site .favicon {
+        margin-right: 10px;
+        display: flex;
+        align-items: center;
+      }
 
-    .site-time {
-      opacity: 0.75;
-    }
-  `;
+      .favicon img {
+        width: 20px;
+        height: 20px;
+      }
+
+      .site-time {
+        color: var(--zen-secondary-text-color);
+      }
+
+      .site-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    `,
+  ];
 
   @property({ type: Array })
   items?: OriginActivity[];
@@ -106,15 +147,7 @@ export class AnimatedGrid extends LitElement {
           // console.debug('[zen-animated-grid]', dx, dy);
 
           if (dx || dy) {
-            requestAnimationFrame(() => {
-              x.style.transform = `translate(${dx}px, ${dy}px)`;
-              x.style.transition = 'transform 0s';
-
-              requestAnimationFrame(() => {
-                x.style.transform = '';
-                x.style.transition = 'transform 700ms ease-in-out';
-              });
-            });
+            slide(x, dx, dy);
           }
         }
       });
@@ -132,15 +165,15 @@ export class AnimatedGrid extends LitElement {
           (x) => x.origin,
           (x) =>
             html`<li class="site" data-key=${x.origin}>
-              <a class="site-link">
+              <button class="site-link">
                 <div class="favicon">
                   <img src=${faviconUrl(x.origin)} />
                 </div>
-                <div>
-                  <div>${stripProtocol(x.origin)}</div>
+                <div class="site-info">
+                  <div class="site-name">${stripProtocol(x.origin)}</div>
                   <div class="site-time">${formatDuration(x.duration)}</div>
                 </div>
-              </a>
+              </button>
             </li>`,
         )}
       </ul>

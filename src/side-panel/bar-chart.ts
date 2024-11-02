@@ -55,6 +55,18 @@ export class BarChartWrapper extends LitElement {
 
 @customElement('zen-d3-bar-chart')
 class D3BarChart extends LitElement {
+  static styles = css`
+    svg {
+      color: var(--zen-secondary-text-color);
+    }
+
+    svg .domain,
+    svg .tick line {
+      stroke: var(--zen-border-color);
+      stroke-width: var(--zen-border-width);
+    }
+  `;
+
   @property()
   width?: number;
 
@@ -118,6 +130,35 @@ class D3BarChart extends LitElement {
       .attr('width', this.width)
       .attr('height', this.height);
 
+    // Add the y-axis. Do this before drawing rects so that rects will be on
+    // top of the vertical gridlines.
+    svg
+      .append('g')
+      .attr('transform', `translate(${this.width - this.#margin.right},0)`)
+      .call(
+        d3
+          .axisRight(y)
+          .tickValues([0, 30, 60])
+          .tickSize(0)
+          .tickFormat((x) => (x ? `${x}m` : `${x}`)),
+      )
+      // remove the domain line:
+      .call((g) => g.select('.domain').remove())
+      // horizontal gridlines
+      .call((g) =>
+        g
+          .selectAll('.tick line')
+          // skip the first tick so that there is no extra line
+          .filter((d, i) => i > 0)
+          // .attr('stroke-opacity', (d) => (d === 1 ? null : 0.2))
+          .clone()
+          .attr('x2', this.width - this.#margin.left - this.#margin.right)
+          .attr(
+            'transform',
+            `translate(${-this.width + this.#margin.right + this.#margin.left}, 0)`,
+          ),
+      );
+
     svg
       .append('g')
       .attr('fill', 'SkyBlue')
@@ -138,14 +179,13 @@ class D3BarChart extends LitElement {
         d3.axisBottom(x).tickSizeOuter(0).ticks(3).tickSize(0).tickFormat(tfX),
       )
       // grey domain line
-      .call((g) => g.select('.domain').attr('stroke', '#d9d9d9'))
+      // .call((g) => g.select('.domain').attr('stroke', '#d9d9d9'))
       // dashed vertical gridlines
       .call((g) =>
         g
           .selectAll('.tick line')
           .clone()
           .attr('y2', this.height - this.#margin.top - this.#margin.bottom + 7)
-          .attr('stroke', '#d9d9d9')
           .attr('stroke-dasharray', '2')
           .attr(
             'transform',
@@ -154,33 +194,6 @@ class D3BarChart extends LitElement {
       )
       .call((g) =>
         g.selectAll('.tick text').attr('transform', 'translate(8, 1)'),
-      );
-
-    // Add the y-axis.
-    svg
-      .append('g')
-      .attr('transform', `translate(${this.width - this.#margin.right},0)`)
-      .call(
-        d3
-          .axisRight(y)
-          .tickValues([0, 30, 60])
-          .tickSize(0)
-          .tickFormat((x) => (x ? `${x}m` : `${x}`)),
-      )
-      // remove the domain line:
-      .call((g) => g.select('.domain').remove())
-      // horizontal gridlines
-      .call((g) =>
-        g
-          .selectAll('.tick line')
-          .attr('stroke', '#d9d9d9')
-          // .attr('stroke-opacity', (d) => (d === 1 ? null : 0.2))
-          .clone()
-          .attr('x2', this.width - this.#margin.left - this.#margin.right)
-          .attr(
-            'transform',
-            `translate(${-this.width + this.#margin.right + this.#margin.left}, 0)`,
-          ),
       );
 
     return svg.node();
