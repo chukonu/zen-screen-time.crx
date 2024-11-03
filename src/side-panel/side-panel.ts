@@ -4,9 +4,7 @@ import _ from 'lodash';
 import { DateTime } from 'luxon';
 import { formatDuration } from '../helper';
 import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
-import settingsIconPath from '../icons_svg/settings.fragment.svg';
-import forwardIconPath from '../icons_svg/forward.fragment.svg';
-import backwardIconPath from '../icons_svg/backward.fragment.svg';
+import * as icons from '../icons';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -50,20 +48,12 @@ export class SidePanelHome extends LitElement {
 
     .heading {
       display: flex;
-      justify-items: flex-start;
+      justify-content: space-between;
       align-items: center;
     }
 
     .footer {
       display: flex;
-    }
-
-    .spacer {
-      flex: 1 1 100%;
-    }
-
-    .current-date {
-      margin-right: 10px;
     }
 
     .footer .show-more {
@@ -144,16 +134,10 @@ export class SidePanelHome extends LitElement {
 
   render() {
     return html`<div class="heading">
-        <div class="current-date">Today</div>
-        <zen-svg-icon-button
-          .iconPath=${backwardIconPath}
-        ></zen-svg-icon-button>
-        <zen-svg-icon-button .iconPath=${forwardIconPath}></zen-svg-icon-button>
-
-        <div class="spacer"></div>
+        <zen-date-control></zen-date-control>
 
         <zen-svg-icon-button
-          .iconPath=${settingsIconPath}
+          .iconPath=${icons.settings}
           @click=${this.openSettings}
         ></zen-svg-icon-button>
       </div>

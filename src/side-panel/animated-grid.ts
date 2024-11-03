@@ -98,6 +98,7 @@ export class AnimatedGrid extends LitElement {
       .site-name {
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
     `,
   ];

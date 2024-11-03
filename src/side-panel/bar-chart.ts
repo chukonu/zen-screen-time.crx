@@ -65,6 +65,10 @@ class D3BarChart extends LitElement {
       stroke: var(--zen-border-color);
       stroke-width: var(--zen-border-width);
     }
+
+    svg g.activity {
+      fill: skyblue;
+    }
   `;
 
   @property()
@@ -161,7 +165,7 @@ class D3BarChart extends LitElement {
 
     svg
       .append('g')
-      .attr('fill', 'SkyBlue')
+      .attr('class', 'activity')
       .selectAll()
       .data(this.data)
       .join('rect')

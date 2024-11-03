@@ -5,6 +5,7 @@ import { customElement, property } from 'lit/decorators.js';
 export class SvgIconButton extends LitElement {
   static styles = css`
     button {
+      cursor: pointer;
       width: 32px;
       height: 32px;
       padding: 0;
