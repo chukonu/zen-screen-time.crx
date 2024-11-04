@@ -7,6 +7,7 @@ body {
   --zen-border-color: rgba(0, 0, 0, 0.06);
   --zen-border-width: 0.666667px;
 
+  overflow-x: hidden;
   color: var(--zen-primary-color);
   background-color: var(--zen-background-color);
 }

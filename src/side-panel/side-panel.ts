@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import _ from 'lodash';
 import { interval, merge, Subscription, switchMap, take, tap } from 'rxjs';
@@ -7,6 +7,8 @@ import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
 import * as icons from '../icons';
 import { DateInMillis } from '../events';
 import { dateChangeSubject } from './date-change';
+import { numberOfItems, updateNumberOfItems } from './number-of-items';
+import { when } from 'lit/directives/when.js';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -35,6 +37,12 @@ export class ZenRouter extends MemoryRouter {
 
 @customElement('zen-side-panel')
 export class SidePanel extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
+
   render() {
     return html`<zen-router-outlet></zen-router-outlet>`;
   }
@@ -43,6 +51,10 @@ export class SidePanel extends LitElement {
 @customElement('zen-side-panel-home')
 export class SidePanelHome extends LitElement {
   static styles = css`
+    :host {
+      display: block;
+    }
+
     .total {
       font-size: 2em;
       margin: 0.5em 0;
@@ -75,10 +87,22 @@ export class SidePanelHome extends LitElement {
   @state()
   private _hourlyActivity?: HourlyActivityDataPoint[];
 
-  private _dateChangeSubscription: Subscription;
+  /**
+   * The number of items to display.
+   */
+  @state()
+  private _numberOfItems?: number;
+
+  private _dateChangeSubscription?: Subscription;
+
+  private _numberOfItemsSubscription?: Subscription;
 
   private get _totalTimeString(): string {
     return this._totalTime ? formatDuration(this._totalTime) : 'No Data';
+  }
+
+  private get _shouldShowShowMore(): boolean {
+    return this._records?.length > this._numberOfItems;
   }
 
   connectedCallback() {
@@ -94,12 +118,23 @@ export class SidePanelHome extends LitElement {
         next: (x) => this._sendDataRequest(x),
         error: (err) => console.error(err),
       });
+
+    this._numberOfItemsSubscription = numberOfItems().subscribe({
+      next: (x) => {
+        this._numberOfItems = x;
+        // requestAnimationFrame(() => {
+        // });
+      },
+      error: (err) => console.error(err),
+    });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    this._dateChangeSubscription.unsubscribe();
+    this._dateChangeSubscription?.unsubscribe();
+
+    this._numberOfItemsSubscription?.unsubscribe();
   }
 
   private _sendDataRequest(date: DateInMillis) {
@@ -127,7 +162,6 @@ export class SidePanelHome extends LitElement {
             duration: _.sumBy(records, (x) => x.duration),
           }))
           .orderBy(['duration', 'origin'], ['desc', 'asc'])
-          .take(8)
           .value();
       },
     );
@@ -139,8 +173,12 @@ export class SidePanelHome extends LitElement {
       .catch((err) => console.error(`Error in opening Settings: ${err}`));
   }
 
-  openMoreDetails() {
+  private _openMoreDetails() {
     routeTo('/more-details');
+  }
+
+  private _showMore() {
+    updateNumberOfItems(this._numberOfItems + 4);
   }
 
   render() {
@@ -159,11 +197,23 @@ export class SidePanelHome extends LitElement {
         .data=${this._hourlyActivity}
         .date=${this._today}
       ></zen-bar-chart>
-      <zen-animated-grid .items=${this._records}></zen-animated-grid>
+      <zen-animated-grid
+        .items=${this._records}
+        .max=${this._numberOfItems}
+        .date=${this._today}
+      ></zen-animated-grid>
       <div class="footer">
-        <zen-default-button class="show-more" @click=${this.openMoreDetails}>
-          Show More
-        </zen-default-button>
+        ${when(
+          this._shouldShowShowMore,
+          () =>
+            html`<zen-default-button
+              class="show-more"
+              @click=${() => this._showMore()}
+            >
+              Show More
+            </zen-default-button>`,
+          () => nothing,
+        )}
       </div>`;
   }
 }

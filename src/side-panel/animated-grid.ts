@@ -45,6 +45,10 @@ export class AnimatedGrid extends LitElement {
   static styles = [
     buttonDefaultStyles,
     css`
+      :host {
+        display: block;
+      }
+
       ul.breakdown {
         padding: 0;
         display: flex;
@@ -57,7 +61,7 @@ export class AnimatedGrid extends LitElement {
 
       li.site {
         display: block;
-        flex: 1 1 50%;
+        flex: 0 1 50%;
 
         box-sizing: border-box;
         margin: 2px 0;
@@ -106,20 +110,59 @@ export class AnimatedGrid extends LitElement {
   @property({ type: Array })
   items?: OriginActivity[];
 
+  /**
+   * Max number of items to display
+   */
+  @property({ type: Number })
+  max: number;
+
+  /**
+   * Helps to determine whether transition animation should be performed.
+   */
+  @property({ type: Number })
+  date?: number;
+
   @queryAll('li.site')
   renderedItems?: NodeListOf<HTMLLIElement>;
 
-  private _rectMap?: Map<string, DOMRect>;
+  /**
+   * Keep track of item position in the array and its bounding rect.
+   */
+  private _rectMap?: Map<string, [number, DOMRect]>;
 
-  protected willUpdate(_changedProperties: PropertyValues): void {
+  /**
+   * Keep track of the number of updates since a date change.
+   *
+   * Reset the count on every date change in `willUpdate`.
+   */
+  private _updateCount: number = 0;
+
+  /**
+   * Control when to do the animation.
+   *
+   * Animation will not occur on the first update after a date change.
+   */
+  private get _shouldAnimate(): boolean {
+    return this._updateCount > 1;
+  }
+
+  protected willUpdate(changedProperties: PropertyValues): void {
     console.debug('[zen-animated-grid]', 'will update');
     this._rectMap = new Map();
 
     const length = this.renderedItems?.length;
     if (length) {
-      Array.from(this.renderedItems).forEach((x) => {
-        this._rectMap.set(x.dataset.key, x.getBoundingClientRect());
+      Array.from(this.renderedItems).forEach((x, i) => {
+        this._rectMap.set(x.dataset.key, [i, x.getBoundingClientRect()]);
       });
+    }
+
+    if (changedProperties.has('date')) {
+      this._updateCount = 0;
+    }
+
+    if (changedProperties.has('items')) {
+      this._updateCount++;
     }
   }
 
@@ -134,24 +177,33 @@ export class AnimatedGrid extends LitElement {
 
     if (length) {
       console.debug('[zen-animated-grid]', 'items are rendered');
-      // animate grid items following the FLIP pattern
-      Array.from(this.renderedItems).forEach((x) => {
-        const key = x.dataset.key;
-        const rect = x.getBoundingClientRect();
-        const oldRect = this._rectMap?.get(key);
 
-        if (!oldRect) {
-          console.debug('[zen-animated-grid]', 'first render; no animation.');
-        } else {
+      if (this._shouldAnimate) {
+        // animate grid items following the FLIP pattern
+        Array.from(this.renderedItems).forEach((x, i) => {
+          const key = x.dataset.key;
+
+          if (!this._rectMap?.has(key)) {
+            console.debug('[zen-animated-grid]', 'first render; no animation.');
+            return;
+          }
+
+          const rect = x.getBoundingClientRect();
+          const [oldIndex, oldRect] = this._rectMap.get(key);
+
+          // no animation if the item is in the same position:
+          if (oldIndex == i) {
+            return;
+          }
+
           const dx = oldRect.left - rect.left;
           const dy = oldRect.top - rect.top;
-          // console.debug('[zen-animated-grid]', dx, dy);
 
           if (dx || dy) {
             slide(x, dx, dy);
           }
-        }
-      });
+        });
+      }
     }
   }
 
@@ -162,7 +214,7 @@ export class AnimatedGrid extends LitElement {
     return html`
       <ul class="breakdown">
         ${repeat(
-          this.items,
+          this.items?.slice(0, this.max),
           (x) => x.origin,
           (x) =>
             html`<li class="site" data-key=${x.origin}>

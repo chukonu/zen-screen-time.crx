@@ -4,9 +4,20 @@ import { customElement, property, query, state } from 'lit/decorators.js';
 import { DateTime } from 'luxon';
 import { HourlyActivityDataPoint } from './side-panel';
 
+const ASPECT_RATIO: number = 2.725;
+
 @customElement('zen-bar-chart')
 export class BarChartWrapper extends LitElement {
-  static styles = css``;
+  static styles = css`
+    :host {
+      display: block;
+    }
+
+    #container {
+      aspect-ratio: ${ASPECT_RATIO};
+      overflow: hidden;
+    }
+  `;
 
   @property({ type: Array })
   data?: HourlyActivityDataPoint[];
@@ -26,7 +37,7 @@ export class BarChartWrapper extends LitElement {
     requestAnimationFrame(() => {
       if (body.contentRect.width !== this.contentWidth) {
         this.contentWidth = body.contentRect.width;
-        this.chartHeight = Math.ceil(this.contentWidth / 2.87);
+        this.chartHeight = Math.ceil(this.contentWidth / ASPECT_RATIO);
       }
     });
   });
@@ -44,7 +55,7 @@ export class BarChartWrapper extends LitElement {
   }
 
   render() {
-    return html`<div style="height: ${this.chartHeight}px;">
+    return html`<div id="container">
       ${this.contentWidth && this.chartHeight
         ? html` <zen-d3-bar-chart
             .data=${this.data}

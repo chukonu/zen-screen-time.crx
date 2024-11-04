@@ -1,4 +1,4 @@
-import { LitElement, TemplateResult } from 'lit';
+import { css, LitElement, TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import _ from 'lodash';
 import { ZenEvents } from '../events';
@@ -24,6 +24,12 @@ export function routeBack() {
 }
 
 export abstract class MemoryRouter extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
+
   private static DEFAULT: string[] = ['/'];
 
   @state()

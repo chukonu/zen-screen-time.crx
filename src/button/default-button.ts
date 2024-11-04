@@ -18,6 +18,10 @@ export const buttonDefaultStyles = css`
 @customElement('zen-default-button')
 export class DefaultButton extends LitElement {
   static styles = css`
+    :host {
+      display: block;
+    }
+
     .default-button {
       color: var(--zen-primary-color);
       font-size: 1.1em;
