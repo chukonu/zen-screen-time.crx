@@ -8,8 +8,11 @@ import { HourlyActivityDataPoint } from './side-panel';
 export class BarChartWrapper extends LitElement {
   static styles = css``;
 
-  @property()
+  @property({ type: Array })
   data?: HourlyActivityDataPoint[];
+
+  @property({ type: Number })
+  date?: number;
 
   @state()
   private contentWidth?: number;
@@ -45,6 +48,7 @@ export class BarChartWrapper extends LitElement {
       ${this.contentWidth && this.chartHeight
         ? html` <zen-d3-bar-chart
             .data=${this.data}
+            .date=${this.date}
             .width="${this.contentWidth}"
             .height="${this.chartHeight}"
           ></zen-d3-bar-chart>`
@@ -71,14 +75,24 @@ class D3BarChart extends LitElement {
     }
   `;
 
-  @property()
+  @property({ type: Number })
   width?: number;
 
-  @property()
+  @property({ type: Number })
   height?: number;
 
-  @property()
+  @property({ type: Array })
   data?: HourlyActivityDataPoint[];
+
+  @property({ type: Number })
+  date?: number;
+
+  private get _timeDomain(): [Date, Date] {
+    return [
+      DateTime.fromMillis(this.date).startOf('day').toJSDate(),
+      DateTime.fromMillis(this.date).endOf('day').toJSDate(),
+    ];
+  }
 
   readonly #margin = {
     top: 20,
@@ -97,7 +111,7 @@ class D3BarChart extends LitElement {
     // console.debug(`w: ${this.width}; h: ${this.height};`);
     // undefined in changedProperties but present in this object
 
-    if (this.width && this.height && this.data) {
+    if (this.width && this.height && this.data && this.date) {
       if (this.#chart) {
         this.container.removeChild(this.#chart);
       }
@@ -105,7 +119,7 @@ class D3BarChart extends LitElement {
       this.container.appendChild(this.#chart);
     }
 
-    console.debug('Data: ', this.data);
+    console.debug('Bar chart data: ', this.data);
   }
 
   #createD3Chart(): SVGSVGElement {
@@ -115,10 +129,7 @@ class D3BarChart extends LitElement {
 
     const x = d3
       .scaleTime()
-      .domain([
-        DateTime.now().startOf('day').toJSDate(),
-        DateTime.now().endOf('day').toJSDate(),
-      ])
+      .domain(this._timeDomain)
       .range([this.#margin.left, this.width - this.#margin.right]);
 
     const tfX = x.tickFormat(4, '%H');

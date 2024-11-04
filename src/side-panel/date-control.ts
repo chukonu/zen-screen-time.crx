@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { DateTime } from 'luxon';
-import { ZenEvents } from '../events';
+import { DateInMillis, ZenEvents } from '../events';
 import * as icons from '../icons';
 
 @customElement('zen-date-control')
@@ -18,7 +18,7 @@ export class DateControl extends LitElement {
   `;
 
   @state()
-  private _date: DateTime = DateTime.now();
+  private _date: DateTime = DateTime.now().startOf('day');
 
   private get _dateString(): string {
     return this._date.toLocaleString({
@@ -27,7 +27,7 @@ export class DateControl extends LitElement {
     });
   }
 
-  private get _dateInMillis(): number {
+  private get _dateInMillis(): DateInMillis {
     return this._date.toMillis();
   }
 
@@ -36,8 +36,6 @@ export class DateControl extends LitElement {
 
     dispatchEvent(
       new CustomEvent(ZenEvents.NewDate, {
-        bubbles: true,
-        composed: true,
         detail: this._dateInMillis,
       }),
     );

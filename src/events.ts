@@ -13,4 +13,5 @@ export enum ZenEvents {
   RouteChange = 'zenroutechange',
 }
 
-export type NewDateEvent = CustomEvent<number>;
+export type DateInMillis = number;
+export type NewDateEvent = CustomEvent<DateInMillis>;

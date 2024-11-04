@@ -1,10 +1,12 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import _ from 'lodash';
-import { DateTime } from 'luxon';
-import { formatDuration } from '../helper';
+import { interval, merge, Subscription, switchMap, take, tap } from 'rxjs';
+import { formatDuration, SECOND } from '../helper';
 import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
 import * as icons from '../icons';
+import { DateInMillis } from '../events';
+import { dateChangeSubject } from './date-change';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -61,42 +63,54 @@ export class SidePanelHome extends LitElement {
     }
   `;
 
-  @property({ attribute: false })
-  today: DateTime = DateTime.now().startOf('day');
-
-  @property({ type: Array })
-  records?: OriginActivity[];
-
-  @property({ type: Number })
-  totalTime?: number;
+  @state()
+  private _today?: DateInMillis;
 
   @state()
-  private hourlyActivity?: HourlyActivityDataPoint[];
+  private _records?: OriginActivity[];
 
-  #intervalId: ReturnType<typeof setTimeout>;
+  @state()
+  private _totalTime?: number;
+
+  @state()
+  private _hourlyActivity?: HourlyActivityDataPoint[];
+
+  private _dateChangeSubscription: Subscription;
+
+  private get _totalTimeString(): string {
+    return this._totalTime ? formatDuration(this._totalTime) : 'No Data';
+  }
 
   connectedCallback() {
     super.connectedCallback();
 
-    this.#sendDataRequest();
-    this.#intervalId = setInterval(() => this.#sendDataRequest(), 60 * 1000);
+    const scheduledUpdate = interval(60 * SECOND).pipe(
+      switchMap((x) => dateChangeSubject.pipe(take(1))),
+    );
+
+    this._dateChangeSubscription = merge(dateChangeSubject, scheduledUpdate)
+      .pipe(tap((x) => (this._today = x)))
+      .subscribe({
+        next: (x) => this._sendDataRequest(x),
+        error: (err) => console.error(err),
+      });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    clearInterval(this.#intervalId);
+    this._dateChangeSubscription.unsubscribe();
   }
 
-  #sendDataRequest() {
+  private _sendDataRequest(date: DateInMillis) {
     chrome.runtime.sendMessage(
-      { type: 'data_request', payload: { date: this.today.toMillis() } },
+      { type: 'data_request', payload: { date } },
       (response) => {
-        this.records = response;
+        this._records = response;
 
-        this.totalTime = _(this.records).sumBy((x) => x.duration);
+        this._totalTime = _(this._records).sumBy((x) => x.duration);
 
-        this.hourlyActivity = _(this.records)
+        this._hourlyActivity = _(this._records)
           .groupBy((x) => `${x.startTime}`)
           .map((records, key) => ({
             startTime: _.head(records).startTime,
@@ -105,19 +119,16 @@ export class SidePanelHome extends LitElement {
           .value();
 
         // merge records of the same site
-        this.records = _(this.records)
+        this._records = _(this._records)
           .groupBy((x) => x.origin)
           .map((records, key) => ({
             origin: _.head(records).origin,
-            startTime: this.today.toMillis(),
+            startTime: date,
             duration: _.sumBy(records, (x) => x.duration),
           }))
           .orderBy(['duration', 'origin'], ['desc', 'asc'])
           .take(8)
           .value();
-
-        // not needed:
-        // this.requestUpdate();
       },
     );
   }
@@ -142,10 +153,13 @@ export class SidePanelHome extends LitElement {
         ></zen-svg-icon-button>
       </div>
       <div>
-        <div class="total">${formatDuration(this.totalTime)}</div>
+        <div class="total">${this._totalTimeString}</div>
       </div>
-      <zen-bar-chart .data=${this.hourlyActivity}></zen-bar-chart>
-      <zen-animated-grid .items=${this.records}></zen-animated-grid>
+      <zen-bar-chart
+        .data=${this._hourlyActivity}
+        .date=${this._today}
+      ></zen-bar-chart>
+      <zen-animated-grid .items=${this._records}></zen-animated-grid>
       <div class="footer">
         <zen-default-button class="show-more" @click=${this.openMoreDetails}>
           Show More
