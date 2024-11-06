@@ -50,16 +50,21 @@ export class SidePanel extends LitElement {
   }
 }
 
+const numberOfItemsObservable = numberOfItems();
+
 @customElement('zen-side-panel-home')
 export class SidePanelHome extends LitElement {
   static styles = css`
     :host {
       display: block;
+      margin: 8px;
     }
 
     .total {
       font-size: 2em;
-      margin: 0.5em 0;
+      margin: 8px 0 2px 0;
+      min-height: 1em;
+      box-sizing: content-box;
     }
 
     .heading {
@@ -100,6 +105,9 @@ export class SidePanelHome extends LitElement {
   private _numberOfItemsSubscription?: Subscription;
 
   private get _totalTimeString(): string {
+    if (_.isUndefined(this._totalTime)) {
+      return '';
+    }
     return this._totalTime ? formatDuration(this._totalTime) : 'No Data';
   }
 
@@ -121,11 +129,9 @@ export class SidePanelHome extends LitElement {
         error: (err) => console.error(err),
       });
 
-    this._numberOfItemsSubscription = numberOfItems().subscribe({
+    this._numberOfItemsSubscription = numberOfItemsObservable.subscribe({
       next: (x) => {
         this._numberOfItems = x;
-        // requestAnimationFrame(() => {
-        // });
       },
       error: (err) => console.error(err),
     });
@@ -179,7 +185,10 @@ export class SidePanelHome extends LitElement {
     // site information is stored as a data attribute on a LI element
     const composedPath = event.composedPath();
     const li = _(composedPath).find((x) => x instanceof HTMLLIElement);
-    const site = li.dataset.key;
+    const site = li?.dataset.key;
+    if (!site) {
+      return;
+    }
     const props: SiteViewProps = { site, date: this._today };
     routeTo(SidePanelRoutes.SiteView, props);
   }

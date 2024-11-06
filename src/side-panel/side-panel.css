@@ -6,7 +6,9 @@ body {
   --zen-background-color: rgb(255, 255, 255);
   --zen-border-color: rgba(0, 0, 0, 0.06);
   --zen-border-width: 0.666667px;
+  --zen-icon-fill-color: rgb(31, 31, 31);
 
+  margin: 0;
   overflow-x: hidden;
   color: var(--zen-primary-color);
   background-color: var(--zen-background-color);
@@ -20,5 +22,6 @@ body {
     --zen-primary-color: #e3e3e3;
     --zen-secondary-text-color: rgb(196, 199, 197);
     --zen-border-color: rgba(255, 255, 255, 0.1);
+    --zen-icon-fill-color: rgb(154, 160, 166);
   }
 }

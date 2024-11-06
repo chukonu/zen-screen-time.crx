@@ -5,13 +5,6 @@ import { formatDuration } from '../helper';
 import { OriginActivity } from './side-panel';
 import { buttonDefaultStyles } from '../button/default-button';
 
-function faviconUrl(pageUrl: string): string {
-  const url = new URL(chrome.runtime.getURL('/_favicon/'));
-  url.searchParams.set('pageUrl', pageUrl);
-  url.searchParams.set('size', '32');
-  return url.toString();
-}
-
 function stripProtocol(origin: string): string {
   return origin.replace(/(http|https):\/\//, '');
 }
@@ -90,13 +83,6 @@ export class AnimatedGrid extends LitElement {
 
       .site .favicon {
         margin-right: 10px;
-        display: flex;
-        align-items: center;
-      }
-
-      .favicon img {
-        width: 20px;
-        height: 20px;
       }
 
       .site-time {
@@ -223,9 +209,7 @@ export class AnimatedGrid extends LitElement {
           (x) =>
             html`<li class="site" data-key=${x.origin}>
               <button class="site-link">
-                <div class="favicon">
-                  <img src=${faviconUrl(x.origin)} />
-                </div>
+                <zen-favicon class="favicon" .url=${x.origin}></zen-favicon>
                 <div class="site-info">
                   <div class="site-name">${stripProtocol(x.origin)}</div>
                   <div class="site-time">${formatDuration(x.duration)}</div>

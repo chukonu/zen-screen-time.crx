@@ -18,6 +18,23 @@ export class SiteView extends LitElement {
     :host {
       display: block;
     }
+
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-bottom: var(--zen-border-width) solid var(--zen-border-color);
+    }
+
+    .header-title {
+      margin-left: 8px;
+      font-size: 1.07em;
+      font-weight: 500;
+    }
+
+    zen-favicon {
+      margin-left: 16px;
+    }
   `;
 
   @property({ type: Number })
@@ -31,13 +48,14 @@ export class SiteView extends LitElement {
   }
 
   render() {
-    return html`<div>
+    return html`<div class="header">
         <zen-svg-icon-button
           .iconPath=${icons.arrowBack}
           @click=${routeBack}
         ></zen-svg-icon-button>
+        <zen-favicon .url=${this.site}></zen-favicon>
+        <div class="header-title">${this.site}</div>
       </div>
-      <div>${this._dateString}</div>
-      <div>${this.site}</div>`;
+      <div>${this._dateString}</div>`;
   }
 }

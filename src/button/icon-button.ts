@@ -29,7 +29,7 @@ export class SvgIconButton extends LitElement {
     }
 
     button svg {
-      fill: var(--zen-primary-color);
+      fill: var(--zen-icon-fill-color);
     }
   `;
 
