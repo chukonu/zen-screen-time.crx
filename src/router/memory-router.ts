@@ -3,24 +3,29 @@ import { state } from 'lit/decorators.js';
 import _ from 'lodash';
 import { ZenEvents } from '../events';
 
-export type RouteConfig = { path: string; render: () => TemplateResult };
+export type RouteConfig = {
+  path: string;
+  render: (...args: any[]) => TemplateResult;
+};
 
-export type RouteChangeEvent = CustomEvent<string>;
+export type RouteHistoryRecord = { dest: string; data?: any };
 
-export function routeTo(dest: string) {
+export type RouteChangeEvent = CustomEvent<RouteHistoryRecord>;
+
+export function routeTo(dest: string, data?: any) {
   dispatchEvent(
     new CustomEvent(ZenEvents.RouteChange, {
-      bubbles: true,
-      composed: true,
-      detail: dest,
-    }),
+      detail: { dest, data },
+    }) as RouteChangeEvent,
   );
 }
 
 export function routeBack() {
-  dispatchEvent(
-    new CustomEvent(ZenEvents.RouteBack, { bubbles: true, composed: true }),
-  );
+  dispatchEvent(new CustomEvent(ZenEvents.RouteBack));
+}
+
+function defaultRoute(): RouteHistoryRecord {
+  return { dest: '/' };
 }
 
 export abstract class MemoryRouter extends LitElement {
@@ -30,10 +35,8 @@ export abstract class MemoryRouter extends LitElement {
     }
   `;
 
-  private static DEFAULT: string[] = ['/'];
-
   @state()
-  private _history: string[] = ['/'];
+  private _history: RouteHistoryRecord[] = [defaultRoute()];
 
   protected abstract routes: RouteConfig[];
 
@@ -43,7 +46,7 @@ export abstract class MemoryRouter extends LitElement {
 
   private _handleRouteBack = (event: RouteChangeEvent) => {
     const h = _.eq(1, this._history.length)
-      ? MemoryRouter.DEFAULT
+      ? Array.of(defaultRoute())
       : (this._history.pop(), this._history);
     this._history = Array.of(...h);
   };
@@ -67,8 +70,8 @@ export abstract class MemoryRouter extends LitElement {
   }
 
   render() {
-    const currentLoc = _.last(this._history);
+    const { dest: currentLoc, data: props } = _.last(this._history);
     const route = this._findRoute(currentLoc);
-    return route.render();
+    return route.render(props);
   }
 }

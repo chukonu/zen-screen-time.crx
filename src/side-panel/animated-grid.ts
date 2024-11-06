@@ -84,6 +84,10 @@ export class AnimatedGrid extends LitElement {
         background-color: var(--zen-hover-background-color);
       }
 
+      .site:active {
+        background-color: var(--zen-active-background-color);
+      }
+
       .site .favicon {
         margin-right: 10px;
         display: flex;

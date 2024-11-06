@@ -9,6 +9,8 @@ import { DateInMillis } from '../events';
 import { dateChangeSubject } from './date-change';
 import { numberOfItems, updateNumberOfItems } from './number-of-items';
 import { when } from 'lit/directives/when.js';
+import { renderSiteView, SiteViewProps } from './site-activity';
+import { SidePanelRoutes } from './side-panel-routes';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -25,12 +27,12 @@ export type OriginActivity = {
 export class ZenRouter extends MemoryRouter {
   routes: RouteConfig[] = [
     {
-      path: '/',
+      path: SidePanelRoutes.Home,
       render: () => html`<zen-side-panel-home></zen-side-panel-home>`,
     },
     {
-      path: '/more-details',
-      render: () => html`<zen-more-details></zen-more-details>`,
+      path: SidePanelRoutes.SiteView,
+      render: (props: any) => renderSiteView(props as SiteViewProps),
     },
   ];
 }
@@ -173,8 +175,13 @@ export class SidePanelHome extends LitElement {
       .catch((err) => console.error(`Error in opening Settings: ${err}`));
   }
 
-  private _openMoreDetails() {
-    routeTo('/more-details');
+  private _openSite(event: Event) {
+    // site information is stored as a data attribute on a LI element
+    const composedPath = event.composedPath();
+    const li = _(composedPath).find((x) => x instanceof HTMLLIElement);
+    const site = li.dataset.key;
+    const props: SiteViewProps = { site, date: this._today };
+    routeTo(SidePanelRoutes.SiteView, props);
   }
 
   private _showMore() {
@@ -201,6 +208,7 @@ export class SidePanelHome extends LitElement {
         .items=${this._records}
         .max=${this._numberOfItems}
         .date=${this._today}
+        @click=${(event: Event) => this._openSite(event)}
       ></zen-animated-grid>
       <div class="footer">
         ${when(

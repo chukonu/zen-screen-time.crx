@@ -3,6 +3,8 @@ import { customElement, state } from 'lit/decorators.js';
 import { DateTime } from 'luxon';
 import { DateInMillis, ZenEvents } from '../events';
 import * as icons from '../icons';
+import { Subscription } from 'rxjs';
+import { dateChangeSubject } from './date-change';
 
 @customElement('zen-date-control')
 export class DateControl extends LitElement {
@@ -18,7 +20,7 @@ export class DateControl extends LitElement {
   `;
 
   @state()
-  private _date: DateTime = DateTime.now().startOf('day');
+  private _date?: DateTime;
 
   private get _dateString(): string {
     return this._date.toLocaleString({
@@ -31,6 +33,8 @@ export class DateControl extends LitElement {
     return this._date.toMillis();
   }
 
+  private _dateChangeSubscription?: Subscription;
+
   private _plusDay(day: number = 1) {
     this._date = this._date.plus({ day });
 
@@ -39,6 +43,21 @@ export class DateControl extends LitElement {
         detail: this._dateInMillis,
       }),
     );
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    this._dateChangeSubscription = dateChangeSubject.subscribe({
+      next: (x) => (this._date = DateTime.fromMillis(x)),
+      error: (err) => console.debug(this.tagName, err),
+    });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    this._dateChangeSubscription?.unsubscribe();
   }
 
   render() {
