@@ -2,7 +2,7 @@ import { css, html, LitElement, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import _ from 'lodash';
 import { interval, merge, Subscription, switchMap, take, tap } from 'rxjs';
-import { formatDuration, SECOND } from '../helper';
+import { formatDuration, getHour, SECOND } from '../helper';
 import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
 import * as icons from '../icons';
 import { DateInMillis } from '../events';
@@ -11,6 +11,7 @@ import { numberOfItems, updateNumberOfItems } from './number-of-items';
 import { when } from 'lit/directives/when.js';
 import { renderSiteView, SiteViewProps } from './site-activity';
 import { SidePanelRoutes } from './side-panel-routes';
+import { BarChartDataPoint } from './bar-chart';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -92,7 +93,7 @@ export class SidePanelHome extends LitElement {
   private _totalTime?: number;
 
   @state()
-  private _hourlyActivity?: HourlyActivityDataPoint[];
+  private _hourlyActivity?: BarChartDataPoint[];
 
   /**
    * The number of items to display.
@@ -156,9 +157,10 @@ export class SidePanelHome extends LitElement {
         this._hourlyActivity = _(this._records)
           .groupBy((x) => `${x.startTime}`)
           .map((records, key) => ({
-            startTime: _.head(records).startTime,
+            hour: getHour(_.head(records).startTime),
             durationInMinutes: _.sumBy(records, (x) => x.duration) / 60,
           }))
+          .map((x) => [x.hour, x.durationInMinutes] as [number, number])
           .value();
 
         // merge records of the same site

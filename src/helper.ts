@@ -18,3 +18,6 @@ export const formatDuration = (seconds: number): string =>
   });
 
 export const SECOND = 1000;
+
+export const getHour = (millis: number): number =>
+  DateTime.fromMillis(millis).hour;

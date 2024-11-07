@@ -1,8 +1,6 @@
 import * as d3 from 'd3';
 import { css, html, LitElement, PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { DateTime } from 'luxon';
-import { HourlyActivityDataPoint } from './side-panel';
 
 const ASPECT_RATIO: number = 2.725;
 
@@ -20,7 +18,7 @@ export class BarChartWrapper extends LitElement {
   `;
 
   @property({ type: Array })
-  data?: HourlyActivityDataPoint[];
+  data?: BarChartDataPoint[];
 
   @property({ type: Number })
   date?: number;
@@ -93,136 +91,37 @@ class D3BarChart extends LitElement {
   height?: number;
 
   @property({ type: Array })
-  data?: HourlyActivityDataPoint[];
+  data?: BarChartDataPoint[];
 
   @property({ type: Number })
   date?: number;
 
-  private get _timeDomain(): [Date, Date] {
-    return [
-      DateTime.fromMillis(this.date).startOf('day').toJSDate(),
-      DateTime.fromMillis(this.date).endOf('day').toJSDate(),
-    ];
-  }
-
-  readonly #margin = {
-    top: 20,
-    right: 30,
-    bottom: 30,
-    left: 1,
-  };
-
   @query('#container', true)
   container: HTMLElement;
 
-  #chart?: SVGSVGElement;
+  @query('#container svg')
+  private _chart?: SVGSVGElement;
+
+  private _chartGenerator?: Generator<SVGSVGElement, never, BarChartProps> =
+    barChartGenerator(() => this._barChartProps());
+
+  private _barChartProps(): BarChartProps {
+    return {
+      width: this.width,
+      height: this.height,
+      data: this.data,
+    };
+  }
 
   protected updated(_changedProperties: PropertyValues): void {
-    // console.debug('updated: ', _changedProperties);
-    // console.debug(`w: ${this.width}; h: ${this.height};`);
-    // undefined in changedProperties but present in this object
-
     if (this.width && this.height && this.data && this.date) {
-      if (this.#chart) {
-        this.container.removeChild(this.#chart);
+      const svg: SVGSVGElement = this._chartGenerator.next().value;
+      if (!this._chart) {
+        this.container.appendChild(svg);
       }
-      this.#chart = this.#createD3Chart();
-      this.container.appendChild(this.#chart);
     }
 
     console.debug('Bar chart data: ', this.data);
-  }
-
-  #createD3Chart(): SVGSVGElement {
-    const barWidth = Math.floor(
-      (this.width - this.#margin.left - this.#margin.right) / 24 / 2,
-    );
-
-    const x = d3
-      .scaleTime()
-      .domain(this._timeDomain)
-      .range([this.#margin.left, this.width - this.#margin.right]);
-
-    const tfX = x.tickFormat(4, '%H');
-
-    const y = d3
-      .scaleLinear()
-      .domain([0, 60])
-      .range([this.height - this.#margin.bottom, this.#margin.top]);
-
-    // Create the SVG container.
-    const svg = d3
-      .create('svg')
-      .attr('width', this.width)
-      .attr('height', this.height);
-
-    // Add the y-axis. Do this before drawing rects so that rects will be on
-    // top of the vertical gridlines.
-    svg
-      .append('g')
-      .attr('transform', `translate(${this.width - this.#margin.right},0)`)
-      .call(
-        d3
-          .axisRight(y)
-          .tickValues([0, 30, 60])
-          .tickSize(0)
-          .tickFormat((x) => (x ? `${x}m` : `${x}`)),
-      )
-      // remove the domain line:
-      .call((g) => g.select('.domain').remove())
-      // horizontal gridlines
-      .call((g) =>
-        g
-          .selectAll('.tick line')
-          // skip the first tick so that there is no extra line
-          .filter((d, i) => i > 0)
-          // .attr('stroke-opacity', (d) => (d === 1 ? null : 0.2))
-          .clone()
-          .attr('x2', this.width - this.#margin.left - this.#margin.right)
-          .attr(
-            'transform',
-            `translate(${-this.width + this.#margin.right + this.#margin.left}, 0)`,
-          ),
-      );
-
-    svg
-      .append('g')
-      .attr('class', 'activity')
-      .selectAll()
-      .data(this.data)
-      .join('rect')
-      .attr('x', (d) => x(d.startTime) + barWidth / 2)
-      .attr('width', barWidth)
-      .attr('y', (d) => y(d.durationInMinutes))
-      .attr('height', (d) => y(0) - y(d.durationInMinutes));
-
-    // Add the axes after the data so that the domain line will be on top of the bars.
-    // Add the x-axis.
-    svg
-      .append('g')
-      .attr('transform', `translate(0,${this.height - this.#margin.bottom})`)
-      .call(
-        d3.axisBottom(x).tickSizeOuter(0).ticks(3).tickSize(0).tickFormat(tfX),
-      )
-      // grey domain line
-      // .call((g) => g.select('.domain').attr('stroke', '#d9d9d9'))
-      // dashed vertical gridlines
-      .call((g) =>
-        g
-          .selectAll('.tick line')
-          .clone()
-          .attr('y2', this.height - this.#margin.top - this.#margin.bottom + 7)
-          .attr('stroke-dasharray', '2')
-          .attr(
-            'transform',
-            `translate(0, ${-this.height + this.#margin.bottom + this.#margin.top})`,
-          ),
-      )
-      .call((g) =>
-        g.selectAll('.tick text').attr('transform', 'translate(8, 1)'),
-      );
-
-    return svg.node();
   }
 
   render() {
@@ -230,5 +129,177 @@ class D3BarChart extends LitElement {
       id="container"
       style="height: ${this.height}px; width: ${this.width}px;"
     ></div>`;
+  }
+}
+
+export type BarChartDataPoint = [x: number, y: number];
+
+export type BarChartProps = {
+  width: number;
+  height: number;
+  data: BarChartDataPoint[];
+  marginTop?: number;
+  marginRight?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+};
+
+function* barChartGenerator(
+  props: () => BarChartProps,
+): Generator<SVGSVGElement, never, undefined> {
+  const GRIDLINE_Y = 'gridline-y',
+    GRIDLINE_X = 'gridline-x',
+    TICKVALUES_X = [0, 6, 12, 18],
+    svg: d3.Selection<SVGSVGElement, BarChartDataPoint, null, undefined> =
+      d3.create('svg'),
+    scaleX = d3.scaleLinear(),
+    scaleY = d3.scaleLinear(),
+    axisY = svg.append('g'),
+    bars = svg.append('g').attr('class', 'activity'),
+    axisX = svg.append('g');
+
+  const oldProps: Partial<BarChartProps> = {};
+
+  while (true) {
+    const {
+      width,
+      height,
+      data,
+      marginTop = 20,
+      marginRight = 38,
+      marginBottom = 30,
+      marginLeft = 1,
+    } = props();
+
+    const barWidth = Math.floor((width - marginLeft - marginRight) / 24 / 2);
+
+    svg.attr('width', width).attr('height', height);
+
+    scaleX.domain([0, 24]).range([marginLeft, width - marginRight]);
+
+    scaleY.domain([0, 60]).range([height - marginBottom, marginTop]);
+
+    const zeroY = scaleY(0);
+
+    // Add the y-axis. Do this before drawing rects so that rects will be on
+    // top of the vertical gridlines.
+    axisY
+      .attr('transform', `translate(${width - marginRight}, 0)`)
+      .call(
+        d3
+          .axisRight(scaleY)
+          .tickValues([0, 30, 60])
+          .tickSize(0)
+          .tickFormat((x) => (x ? `${x}m` : `${x}`)),
+      )
+      // remove the domain line:
+      .call((g) => g.select('.domain').remove())
+      // horizontal gridlines
+      .call((g) => {
+        // try to select all horizontal gridlines;
+        let gridlinesY = g.selectAll(`.${GRIDLINE_Y}`);
+
+        // draw gridlines if the selection is empty;
+        if (gridlinesY.empty()) {
+          gridlinesY = g
+            .selectAll('.tick line')
+            // skip the first tick to avoid redundant clones
+            .filter((d, i) => i > 0)
+            .clone()
+            .attr('class', GRIDLINE_Y);
+        }
+
+        return gridlinesY
+          .attr('x2', width - marginLeft - marginRight)
+          .attr(
+            'transform',
+            `translate(${-width + marginRight + marginLeft}, 0)`,
+          );
+      });
+
+    const t = svg.transition().duration(400),
+      none = svg.transition().duration(0);
+
+    bars
+      .selectAll('rect')
+      .data(data, (d: BarChartDataPoint) => d[0])
+      .join(
+        (enter) =>
+          enter
+            .append('rect')
+            .attr('x', ([x, y]) => scaleX(x) + barWidth / 2)
+            .attr('width', barWidth)
+            .attr('y', zeroY)
+            .attr('height', 0)
+            .call((enter) =>
+              enter
+                .transition(t)
+                .attr('height', ([x, y]) => zeroY - scaleY(y))
+                .attr('y', ([x, y]) => scaleY(y)),
+            ),
+        (update) =>
+          update.call(
+            (update, changed) => (
+              update
+                .attr('width', barWidth)
+                .attr('x', ([x, y]) => scaleX(x) + barWidth / 2),
+              (changed ? update.transition(t) : update.transition(none))
+                .attr('height', ([x, y]) => zeroY - scaleY(y))
+                .attr('y', ([x, y]) => scaleY(y))
+                .attr('width', barWidth)
+                .attr('x', ([x, y]) => scaleX(x) + barWidth / 2)
+            ),
+            data !== oldProps.data,
+          ),
+        (exit) =>
+          exit
+            // .attr('fill', 'brown')
+            .call(
+              (exit, changed) =>
+                (changed ? exit.transition(t) : exit.transition(none))
+                  .attr('height', 0)
+                  .attr('y', zeroY)
+                  .remove(),
+              data !== oldProps.data,
+            ),
+      );
+
+    // Add the axes after the data so that the domain line will be on top of the bars.
+    // Add the x-axis.
+    axisX
+      .attr('transform', `translate(0,${height - marginBottom})`)
+      .call(
+        d3
+          .axisBottom(scaleX)
+          .tickSizeOuter(0)
+          .tickSize(0)
+          .tickValues(TICKVALUES_X),
+      )
+      // grey domain line
+      // .call((g) => g.select('.domain').attr('stroke', '#d9d9d9'))
+      // dashed vertical gridlines
+      .call((g) => {
+        let gridlinesX = g.selectAll(`.${GRIDLINE_X}`);
+        if (gridlinesX.empty()) {
+          gridlinesX = g
+            .selectAll('.tick line')
+            .clone()
+            .attr('class', GRIDLINE_X);
+        }
+        return gridlinesX
+          .attr('y2', height - marginTop - marginBottom + 7)
+          .attr('stroke-dasharray', '2')
+          .attr(
+            'transform',
+            `translate(0, ${-height + marginBottom + marginTop})`,
+          );
+      })
+      .call((g) =>
+        g.selectAll('.tick text').attr('transform', 'translate(8, 1)'),
+      );
+
+    // track the values of certain properties
+    Object.assign(oldProps, { data });
+    yield svg.node();
   }
 }
