@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import { DateInMillis, ZenEvents } from '../events';
 import * as icons from '../icons';
 import { Subscription } from 'rxjs';
-import { dateChangeSubject } from './date-change';
+import dateChangeObservable from './date-change';
 
 @customElement('zen-date-control')
 export class DateControl extends LitElement {
@@ -48,7 +48,7 @@ export class DateControl extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    this._dateChangeSubscription = dateChangeSubject.subscribe({
+    this._dateChangeSubscription = dateChangeObservable.subscribe({
       next: (x) => (this._date = DateTime.fromMillis(x)),
       error: (err) => console.debug(this.tagName, err),
     });

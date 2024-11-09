@@ -1,6 +1,5 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { DateTime } from 'luxon';
 import * as icons from '../icons';
 import { routeBack } from '../router/memory-router';
 
@@ -43,10 +42,6 @@ export class SiteView extends LitElement {
   @property()
   site?: string;
 
-  private get _dateString(): string {
-    return DateTime.fromMillis(this.date).toLocaleString();
-  }
-
   render() {
     return html`<div class="header">
         <zen-svg-icon-button
@@ -56,6 +51,6 @@ export class SiteView extends LitElement {
         <zen-favicon .url=${this.site}></zen-favicon>
         <div class="header-title">${this.site}</div>
       </div>
-      <div>${this._dateString}</div>`;
+      <div><zen-report-widget></zen-report-widget></div>`;
   }
 }

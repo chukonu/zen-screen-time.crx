@@ -4,6 +4,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { formatDuration } from '../helper';
 import { OriginActivity } from './side-panel';
 import { buttonDefaultStyles } from '../button/default-button';
+import Ref from '../ref';
 
 function stripProtocol(origin: string): string {
   return origin.replace(/(http|https):\/\//, '');
@@ -97,8 +98,8 @@ export class AnimatedGrid extends LitElement {
     `,
   ];
 
-  @property({ type: Array })
-  items?: OriginActivity[];
+  @property({ attribute: false })
+  items?: Ref<OriginActivity[]>;
 
   /**
    * Max number of items to display
@@ -198,13 +199,13 @@ export class AnimatedGrid extends LitElement {
   }
 
   render() {
-    if (!this.items?.length) {
+    if (!this.items?.value?.length) {
       return nothing;
     }
     return html`
       <ul class="breakdown">
         ${repeat(
-          this.items?.slice(0, this.max),
+          this.items?.value.slice(0, this.max),
           (x) => x.origin,
           (x) =>
             html`<li class="site" data-key=${x.origin}>

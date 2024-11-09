@@ -7,6 +7,7 @@ body {
   --zen-border-color: rgba(0, 0, 0, 0.06);
   --zen-border-width: 0.666667px;
   --zen-icon-fill-color: rgb(31, 31, 31);
+  --zen-padding: 8px;
 
   margin: 0;
   overflow-x: hidden;

@@ -1,17 +1,17 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import _ from 'lodash';
-import { interval, merge, Subscription, switchMap, take, tap } from 'rxjs';
-import { formatDuration, getHour, SECOND } from '../helper';
+import { Subscription } from 'rxjs';
+import { formatDuration } from '../helper';
 import { MemoryRouter, RouteConfig, routeTo } from '../router/memory-router';
 import * as icons from '../icons';
 import { DateInMillis } from '../events';
-import { dateChangeSubject } from './date-change';
 import { numberOfItems, updateNumberOfItems } from './number-of-items';
 import { when } from 'lit/directives/when.js';
 import { renderSiteView, SiteViewProps } from './site-activity';
 import { SidePanelRoutes } from './side-panel-routes';
-import { BarChartDataPoint } from './bar-chart';
+import { ReportController } from '../reactive-controllers/report';
+import { updateSiteFilter } from './site-filter';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -63,6 +63,7 @@ export class SidePanelHome extends LitElement {
 
     .total {
       font-size: 2em;
+      line-height: 1em;
       margin: 8px 0 2px 0;
       min-height: 1em;
       box-sizing: content-box;
@@ -87,21 +88,13 @@ export class SidePanelHome extends LitElement {
   private _today?: DateInMillis;
 
   @state()
-  private _records?: OriginActivity[];
-
-  @state()
   private _totalTime?: number;
-
-  @state()
-  private _hourlyActivity?: BarChartDataPoint[];
 
   /**
    * The number of items to display.
    */
   @state()
   private _numberOfItems?: number;
-
-  private _dateChangeSubscription?: Subscription;
 
   private _numberOfItemsSubscription?: Subscription;
 
@@ -113,22 +106,19 @@ export class SidePanelHome extends LitElement {
   }
 
   private get _shouldShowShowMore(): boolean {
-    return this._records?.length > this._numberOfItems;
+    return (
+      this._reportController.value?.durationBySite.value?.length >
+      this._numberOfItems
+    );
   }
+
+  private readonly _reportController = new ReportController(this);
 
   connectedCallback() {
     super.connectedCallback();
 
-    const scheduledUpdate = interval(60 * SECOND).pipe(
-      switchMap((x) => dateChangeSubject.pipe(take(1))),
-    );
-
-    this._dateChangeSubscription = merge(dateChangeSubject, scheduledUpdate)
-      .pipe(tap((x) => (this._today = x)))
-      .subscribe({
-        next: (x) => this._sendDataRequest(x),
-        error: (err) => console.error(err),
-      });
+    // always reset site filter, which may be changed when entering a site view;
+    updateSiteFilter(null);
 
     this._numberOfItemsSubscription = numberOfItemsObservable.subscribe({
       next: (x) => {
@@ -141,40 +131,7 @@ export class SidePanelHome extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    this._dateChangeSubscription?.unsubscribe();
-
     this._numberOfItemsSubscription?.unsubscribe();
-  }
-
-  private _sendDataRequest(date: DateInMillis) {
-    chrome.runtime.sendMessage(
-      { type: 'data_request', payload: { date } },
-      (response) => {
-        this._records = response;
-
-        this._totalTime = _(this._records).sumBy((x) => x.duration);
-
-        this._hourlyActivity = _(this._records)
-          .groupBy((x) => `${x.startTime}`)
-          .map((records, key) => ({
-            hour: getHour(_.head(records).startTime),
-            durationInMinutes: _.sumBy(records, (x) => x.duration) / 60,
-          }))
-          .map((x) => [x.hour, x.durationInMinutes] as [number, number])
-          .value();
-
-        // merge records of the same site
-        this._records = _(this._records)
-          .groupBy((x) => x.origin)
-          .map((records, key) => ({
-            origin: _.head(records).origin,
-            startTime: date,
-            duration: _.sumBy(records, (x) => x.duration),
-          }))
-          .orderBy(['duration', 'origin'], ['desc', 'asc'])
-          .value();
-      },
-    );
   }
 
   openSettings() {
@@ -191,6 +148,7 @@ export class SidePanelHome extends LitElement {
     if (!site) {
       return;
     }
+    updateSiteFilter(site);
     const props: SiteViewProps = { site, date: this._today };
     routeTo(SidePanelRoutes.SiteView, props);
   }
@@ -209,16 +167,16 @@ export class SidePanelHome extends LitElement {
         ></zen-svg-icon-button>
       </div>
       <div>
-        <div class="total">${this._totalTimeString}</div>
+        <div class="total">${this._reportController.value?.durationText}</div>
       </div>
       <zen-bar-chart
-        .data=${this._hourlyActivity}
-        .date=${this._today}
+        .data=${this._reportController.value?.hourlyActivity}
+        .date=${this._reportController.value?.date}
       ></zen-bar-chart>
       <zen-animated-grid
-        .items=${this._records}
+        .items=${this._reportController.value?.durationBySite}
+        .date=${this._reportController.value?.date}
         .max=${this._numberOfItems}
-        .date=${this._today}
         @click=${(event: Event) => this._openSite(event)}
       ></zen-animated-grid>
       <div class="footer">

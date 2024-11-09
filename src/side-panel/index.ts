@@ -4,6 +4,7 @@ export { AnimatedGrid } from './animated-grid';
 export { DateControl } from './date-control';
 export { DefaultButton } from '../button/default-button';
 export { Favicon } from './favicon';
+export { ReportWidget } from './report-widget';
 export { SvgIconButton } from '../button/icon-button';
 
 import './side-panel.css';

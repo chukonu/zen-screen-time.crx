@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 import { css, html, LitElement, PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
+import _ from 'lodash';
+import Ref from '../ref';
 
 const ASPECT_RATIO: number = 2.725;
 
@@ -17,8 +19,8 @@ export class BarChartWrapper extends LitElement {
     }
   `;
 
-  @property({ type: Array })
-  data?: BarChartDataPoint[];
+  @property({ attribute: false })
+  data?: Ref<BarChartDataPoint[]>;
 
   @property({ type: Number })
   date?: number;
@@ -90,8 +92,8 @@ class D3BarChart extends LitElement {
   @property({ type: Number })
   height?: number;
 
-  @property({ type: Array })
-  data?: BarChartDataPoint[];
+  @property({ attribute: false })
+  data?: Ref<BarChartDataPoint[]>;
 
   @property({ type: Number })
   date?: number;
@@ -137,7 +139,7 @@ export type BarChartDataPoint = [x: number, y: number];
 export type BarChartProps = {
   width: number;
   height: number;
-  data: BarChartDataPoint[];
+  data: Ref<BarChartDataPoint[]>;
   marginTop?: number;
   marginRight?: number;
   marginBottom?: number;
@@ -222,7 +224,7 @@ function* barChartGenerator(
 
     bars
       .selectAll('rect')
-      .data(data, (d: BarChartDataPoint) => d[0])
+      .data(data.value, (d: BarChartDataPoint) => d[0])
       .join(
         (enter) =>
           enter
