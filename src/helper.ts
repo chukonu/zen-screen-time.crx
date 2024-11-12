@@ -21,3 +21,6 @@ export const SECOND = 1000;
 
 export const getHour = (millis: number): number =>
   DateTime.fromMillis(millis).hour;
+
+export const today = (): number =>
+  DateTime.now().startOf('day').toUTC().toMillis();

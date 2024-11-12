@@ -82,3 +82,13 @@ document.addEventListener('visibilitychange', startStop);
 if (document.visibilityState === 'visible') {
   pulse.start();
 }
+
+// temporary
+setInterval(() => {
+  const message = {
+    type: 'limit_check',
+  };
+  chrome.runtime.sendMessage(message, (response) =>
+    console.debug('limit check: ', response),
+  );
+}, 20 * 1000);

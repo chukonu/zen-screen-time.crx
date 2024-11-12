@@ -1,10 +1,8 @@
 import {
   concatMap,
-  defaultIfEmpty,
   filter,
-  last,
   map,
-  scan,
+  Observable,
   Subject,
   Subscription,
   tap,
@@ -12,34 +10,58 @@ import {
 import { Pulse } from './Pulse';
 import { PulseStore } from './stores/pulse';
 import { receiveAndStorePulses } from './pulse-operations';
+import { MessageType, Report } from './domain';
+import _ from 'lodash';
+import { hotPeriodicMono } from './rxutil';
+import { today } from './helper';
 
 /**
  * ServiceWorker serves as the gateway to the back end and is the service worker running in the background.
+ *
+ * @see {@link MessageType}
  */
 export class ServiceWorker {
   #messages: Subject<{
-    type: string;
+    type: MessageType;
     payload: any;
+    sender: chrome.runtime.MessageSender;
     sendResponse: (response?: any) => void;
   }> = new Subject();
 
   #dataRequests = this.#messages.pipe(
-    filter((x) => x.type === 'data_request'),
+    filter((x) => x.type === MessageType.DataRequest),
     map(({ payload, sendResponse }) => ({ payload, sendResponse })),
   );
 
   #pulseMessages = this.#messages.pipe(
-    filter((x) => x.type === 'pulse'),
+    filter((x) => x.type === MessageType.Pulse),
     // just acknowledge
     tap(({ sendResponse }) => sendResponse()),
     map((x) => x.payload as Pulse),
   );
 
+  #limitChecks: Observable<{
+    site: string;
+    sendResponse: (response?: any) => void;
+  }> = this.#messages.pipe(
+    filter((x) => x.type === MessageType.LimitCheck),
+    // extract website identity:
+    map(({ sender, sendResponse }) => ({ site: sender.origin, sendResponse })),
+  );
+
   #dataRequestSubscription: Subscription;
   #pulseSubscription: Subscription;
+  #limitCheckSubscription: Subscription;
 
   readonly #dbName = 'zen';
   #pulseStore = new PulseStore(this.#dbName);
+
+  #todaysReportObservable: Observable<Report> = hotPeriodicMono(() => {
+    const date = today();
+    return this.#pulseStore
+      .query(date)
+      .pipe(map((x) => new Report(date, null, x)));
+  });
 
   start() {
     this.#setUpSidePanel();
@@ -55,19 +77,9 @@ export class ServiceWorker {
     this.#dataRequestSubscription = this.#dataRequests
       .pipe(
         concatMap(({ payload, sendResponse }) =>
-          this.#pulseStore.query(payload.date as number).pipe(
-            scan((arr: Pulse[], pulse) => Array.of(...arr, pulse), []),
-            // default to an empty array if the source observable is empty:
-            defaultIfEmpty([]),
-
-            // throws error if the source observable is empty:
-            last(),
-
-            // sort array descendingly by duration
-            map((x) => x.sort((a, b) => b.duration - a.duration)),
-
-            tap((pulseArray) => sendResponse(pulseArray)),
-          ),
+          this.#pulseStore
+            .query(payload.date as number)
+            .pipe(tap((pulseArray) => sendResponse(pulseArray))),
         ),
       )
       .subscribe({
@@ -75,11 +87,29 @@ export class ServiceWorker {
         error: (err) => console.error('Error in querying screen time: ', err),
         complete: () => console.debug('Query completed'),
       });
+
+    this.#limitCheckSubscription = this.#limitChecks
+      .pipe(
+        concatMap(({ site, sendResponse }) =>
+          this.#todaysReportObservable.pipe(
+            map((report) => report.durationBySite),
+            map((X) => _(X.value).filter((x) => x.origin === site)),
+            tap((x) => sendResponse(x)),
+          ),
+        ),
+      )
+      .subscribe();
   }
 
   stop() {
     this.#pulseSubscription?.unsubscribe();
+    this.#pulseSubscription = undefined;
+
     this.#dataRequestSubscription?.unsubscribe();
+    this.#dataRequestSubscription = undefined;
+
+    this.#limitCheckSubscription?.unsubscribe();
+    this.#limitCheckSubscription = undefined;
   }
 
   #setUpSidePanel() {
@@ -94,6 +124,7 @@ export class ServiceWorker {
       this.#messages.next({
         type: message?.type,
         payload: message?.payload,
+        sender: { ...sender },
         sendResponse,
       });
 
