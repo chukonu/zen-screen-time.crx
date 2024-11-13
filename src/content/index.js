@@ -1,3 +1,25 @@
+function sendMessage(message, onResponse, onError) {
+  try {
+    const result = chrome.runtime
+      ?.sendMessage(message, onResponse)
+      .catch((err) =>
+        console.debug('Error in sending message. Ignored silently. ', err),
+      );
+
+    if (!result) {
+      console.debug('Runtime not available. Ignored.');
+    }
+  } catch (error) {
+    // fix the error "Extension context invalidated."
+
+    onError(error);
+
+    console.info(
+      '[Zen Screen Time] Stopped tracking screen time on this page due to an error in calling Chrome extension runtime. This might be fixed by reloading the page.',
+    );
+  }
+}
+
 class Pulse {
   #isStarted = false;
   #timeoutId = null;
@@ -42,26 +64,14 @@ class Pulse {
     const startTime = Date.now();
     const duration = this.#interval / 1000;
 
-    try {
-      const sendMessage = chrome.runtime
-        ?.sendMessage({
-          type: 'pulse',
-          payload: { origin, startTime, duration },
-        })
-        .catch((err) =>
-          console.debug('Error in sending message. Ignored silently. ', err),
-        );
-
-      if (!sendMessage) {
-        console.debug('Runtime not available. Ignored.');
-      }
-    } catch (error) {
-      // fix the error "Extension context invalidated."
-      this.stop();
-      console.info(
-        '[Zen Screen Time] Stopped tracking screen time on this page due to an error in calling Chrome extension runtime. This might be fixed by reloading the page.',
-      );
-    }
+    sendMessage(
+      {
+        type: 'pulse',
+        payload: { origin, startTime, duration },
+      },
+      (_) => {},
+      (_) => this.stop(),
+    );
   }
 
   static #oneSecond = 1000;
@@ -84,11 +94,13 @@ if (document.visibilityState === 'visible') {
 }
 
 // temporary
-setInterval(() => {
+const litmitCheck = setInterval(() => {
   const message = {
     type: 'limit_check',
   };
-  chrome.runtime.sendMessage(message, (response) =>
-    console.debug('limit check: ', response),
+  sendMessage(
+    message,
+    (response) => console.debug('limit check: ', response),
+    (_) => clearInterval(litmitCheck),
   );
 }, 20 * 1000);

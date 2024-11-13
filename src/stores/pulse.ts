@@ -1,13 +1,20 @@
-import { concatMap, Observable, of, tap } from 'rxjs';
+import {
+  concatMap,
+  defaultIfEmpty,
+  last,
+  map,
+  Observable,
+  of,
+  scan,
+  tap,
+} from 'rxjs';
 import { Pulse } from '../Pulse';
 import { formatMillis } from '../helper';
 import { DateTime } from 'luxon';
+import upgradeDb from './db-upgrade-2392';
+import DbConst from './db-constants';
 
-const DB_VER = 1;
-const PULSE_STORENAME = 'pulses';
-const ORIGIN_TIME_IDX = 'origin_time';
-const ORIGIN_IDX = 'origin';
-const TIME_IDX = 'start_time';
+const DB_VER = 2392;
 
 function openIndexedDb(
   name: string,
@@ -30,16 +37,6 @@ function openIndexedDb(
   });
 }
 
-function createPulseStore(db: IDBDatabase) {
-  const store = db.createObjectStore(PULSE_STORENAME, {
-    keyPath: 'id',
-    autoIncrement: true,
-  });
-  store.createIndex(ORIGIN_TIME_IDX, ['origin', 'startTime'], { unique: true });
-  store.createIndex(ORIGIN_IDX, 'origin', { unique: false });
-  store.createIndex(TIME_IDX, 'startTime', { unique: false });
-}
-
 export class PulseStore {
   #dbName: string;
   #db: IDBDatabase;
@@ -48,8 +45,23 @@ export class PulseStore {
     this.#dbName = dbName;
   }
 
-  query(date: number): Observable<Pulse> {
-    return this.#openCursor(date);
+  /**
+   * Query the pulse object store by date.
+   * @param date date in milliseconds
+   * @returns an observable of a single `Pulse` array, sorted descendingly by duration.
+   */
+  query(date: number): Observable<Pulse[]> {
+    return this.#openCursor(date).pipe(
+      scan((arr: Pulse[], pulse) => Array.of(...arr, pulse), []),
+      // default to an empty array if the source observable is empty:
+      defaultIfEmpty([]),
+
+      // `last` throws error if the source observable is empty:
+      last(),
+
+      // sort array descendingly by duration
+      map((x) => x.sort((a, b) => b.duration - a.duration)),
+    );
   }
 
   update(pulse: Pulse): Observable<Pulse> {
@@ -59,7 +71,10 @@ export class PulseStore {
     const startTransaction = concatMap(
       (db: IDBDatabase): Observable<IDBTransaction> =>
         new Observable((subscriber) => {
-          const transaction = db.transaction(PULSE_STORENAME, 'readwrite');
+          const transaction = db.transaction(
+            DbConst.PULSE_STORENAME,
+            'readwrite',
+          );
           transaction.oncomplete = function (event) {
             console.debug('Transaction completed');
             subscriber.complete();
@@ -74,8 +89,8 @@ export class PulseStore {
     const openCursor = (t: IDBTransaction): Observable<IDBCursorWithValue> =>
       new Observable((subscriber) => {
         const req = t
-          .objectStore(PULSE_STORENAME)
-          .index(ORIGIN_TIME_IDX)
+          .objectStore(DbConst.PULSE_STORENAME)
+          .index(DbConst.ORIGIN_TIME_IDX)
           .openCursor(IDBKeyRange.only([origin, startTime]));
 
         req.onsuccess = function (event) {
@@ -91,7 +106,7 @@ export class PulseStore {
 
     const addPulse = (t: IDBTransaction): Observable<Pulse> =>
       new Observable((subscriber) => {
-        const req = t.objectStore(PULSE_STORENAME).add(pulse);
+        const req = t.objectStore(DbConst.PULSE_STORENAME).add(pulse);
         req.onsuccess = function (event) {
           const id = this.result;
           subscriber.next({ ...pulse, id });
@@ -161,9 +176,7 @@ export class PulseStore {
   }
 
   #openDb(): Observable<IDBDatabase> {
-    return this.#db
-      ? of(this.#db)
-      : openIndexedDb(this.#dbName, createPulseStore);
+    return this.#db ? of(this.#db) : openIndexedDb(this.#dbName, upgradeDb);
   }
 
   #newTransaction(): Observable<IDBTransaction> {
@@ -171,7 +184,10 @@ export class PulseStore {
       concatMap(
         (db: IDBDatabase): Observable<IDBTransaction> =>
           new Observable((subscriber) => {
-            const transaction = db.transaction(PULSE_STORENAME, 'readonly');
+            const transaction = db.transaction(
+              DbConst.PULSE_STORENAME,
+              'readonly',
+            );
             transaction.oncomplete = function (event) {
               console.debug('Transaction completed');
               subscriber.complete();
@@ -192,8 +208,8 @@ export class PulseStore {
         (t: IDBTransaction): Observable<Pulse> =>
           new Observable((subscriber) => {
             const req = t
-              .objectStore(PULSE_STORENAME)
-              .index(TIME_IDX)
+              .objectStore(DbConst.PULSE_STORENAME)
+              .index(DbConst.TIME_IDX)
               .openCursor(
                 IDBKeyRange.bound(date, plusOneDay(date), false, true),
               );
