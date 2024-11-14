@@ -84,7 +84,7 @@ export const receiveAndStorePulses = (
         .pipe(
           tap((id) =>
             console.debug(
-              `Pulse updated successfully: {id=${id}; origin=${p.origin}; duration=${p.duration}; startTime=${formatMillis(p.startTime)} }`,
+              `Pulse updated successfully: {id=${id}; origin=${p.origin}; duration increment=${p.duration}; startTime=${formatMillis(p.startTime)} }`,
             ),
           ),
         ),

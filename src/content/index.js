@@ -1,23 +1,29 @@
-function sendMessage(message, onResponse, onError) {
-  try {
-    const result = chrome.runtime
-      ?.sendMessage(message, onResponse)
-      .catch((err) =>
-        console.debug('Error in sending message. Ignored silently. ', err),
-      );
+function noop() {}
+
+function sendMessage(message) {
+  return new Promise((resolve, reject) => {
+    let result;
+
+    try {
+      result = chrome?.runtime?.sendMessage(message);
+    } catch (error) {
+      reject(error);
+      return;
+    }
 
     if (!result) {
-      console.debug('Runtime not available. Ignored.');
+      reject(new Error('No runtime is available for sending the message.'));
+      return;
     }
-  } catch (error) {
-    // fix the error "Extension context invalidated."
 
-    onError(error);
-
-    console.info(
-      '[Zen Screen Time] Stopped tracking screen time on this page due to an error in calling Chrome extension runtime. This might be fixed by reloading the page.',
-    );
-  }
+    result.then((response) => {
+      if (!arguments.length) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve(response);
+    });
+  });
 }
 
 class Pulse {
@@ -64,14 +70,19 @@ class Pulse {
     const startTime = Date.now();
     const duration = this.#interval / 1000;
 
-    sendMessage(
-      {
-        type: 'pulse',
-        payload: { origin, startTime, duration },
-      },
-      (_) => {},
-      (_) => this.stop(),
-    );
+    const message = {
+      type: 'pulse',
+      payload: { origin, startTime, duration },
+    };
+
+    sendMessage(message)
+      .then(noop)
+      .catch((err) => {
+        console.debug(`While sending a pulse: ${err.message}`);
+
+        this.stop();
+        console.debug('Stopped reporting pulses.');
+      });
   }
 
   static #oneSecond = 1000;
@@ -98,9 +109,12 @@ const litmitCheck = setInterval(() => {
   const message = {
     type: 'limit_check',
   };
-  sendMessage(
-    message,
-    (response) => console.debug('limit check: ', response),
-    (_) => clearInterval(litmitCheck),
-  );
+  sendMessage(message)
+    .then((response) => console.debug('limit check: ', response))
+    .catch((err) => {
+      console.debug(`While checking for limits: ${err.message}`);
+
+      clearInterval(litmitCheck);
+      console.debug('Stopped limit checking.');
+    });
 }, 20 * 1000);
