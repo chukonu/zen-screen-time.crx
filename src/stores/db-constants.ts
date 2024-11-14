@@ -1,3 +1,4 @@
+const DB_VER = 2393;
 const PULSE_STORENAME = 'pulses';
 const LIMIT_STORENAME = 'limits';
 const ORIGIN_TIME_IDX = 'origin_time';
@@ -8,6 +9,7 @@ const CREATETIME_IDX = 'createtime';
 const UPDATETIME_IDX = 'updatetime';
 
 export const DbConst = {
+  DB_VER,
   PULSE_STORENAME,
   LIMIT_STORENAME,
 

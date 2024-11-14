@@ -13,8 +13,8 @@ import {
 } from 'rxjs';
 import { Pmap, Pulse } from './Pulse';
 import { formatMillis, startOfHour, SECOND } from './helper';
-import { PulseStore } from './stores/pulse';
 import _ from 'lodash';
+import { PulseStore } from './stores';
 
 const accumulatePulses = (pmap: Pmap, pulse: Pulse): Pmap => {
   const { origin, startTime, duration } = pulse;
@@ -46,7 +46,7 @@ const decomposePmapToPulses = (x: Pmap): Observable<Pulse> =>
 export const receiveAndStorePulses = (
   pulseMessages: Observable<Pulse>,
   store: PulseStore,
-): Observable<Pulse> =>
+): Observable<IDBValidKey> =>
   pulseMessages.pipe(
     // round to the start of the hour because we only need that much granularity
     map((x: Pulse): Pulse => ({ ...x, startTime: startOfHour(x.startTime) })),
@@ -78,12 +78,15 @@ export const receiveAndStorePulses = (
     }),
 
     // update or add pulse
-    concatMap((p: Pulse): Observable<Pulse> => store.update(p)),
-
-    tap({
-      next: (x) =>
-        console.debug(
-          `Pulse updated successfully: {id=${x.id}; origin=${x.origin}; duration=${x.duration}; startTime=${formatMillis(x.startTime)} }`,
+    concatMap((p) =>
+      store
+        .upsertOne(p)
+        .pipe(
+          tap((id) =>
+            console.debug(
+              `Pulse updated successfully: {id=${id}; origin=${p.origin}; duration=${p.duration}; startTime=${formatMillis(p.startTime)} }`,
+            ),
+          ),
         ),
-    }),
+    ),
   );

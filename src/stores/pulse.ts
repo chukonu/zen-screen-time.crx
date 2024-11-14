@@ -11,7 +11,7 @@ import {
 import { Pulse } from '../Pulse';
 import { formatMillis } from '../helper';
 import { DateTime } from 'luxon';
-import upgradeDb from './db-upgrade-2392';
+import upgradeDb from './db-upgrade-2393';
 import DbConst from './db-constants';
 
 const DB_VER = 2392;
@@ -37,7 +37,7 @@ function openIndexedDb(
   });
 }
 
-export class PulseStore {
+class PulseStore {
   #dbName: string;
   #db: IDBDatabase;
 

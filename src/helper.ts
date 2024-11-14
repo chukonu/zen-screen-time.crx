@@ -24,3 +24,7 @@ export const getHour = (millis: number): number =>
 
 export const today = (): number =>
   DateTime.now().startOf('day').toUTC().toMillis();
+
+export function plusOneDay(date: number) {
+  return DateTime.fromMillis(date).plus({ day: 1 }).toUTC().toMillis();
+}

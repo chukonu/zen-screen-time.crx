@@ -8,12 +8,13 @@ import {
   tap,
 } from 'rxjs';
 import { Pulse } from './Pulse';
-import { PulseStore } from './stores/pulse';
 import { receiveAndStorePulses } from './pulse-operations';
 import { MessageType, Report } from './domain';
 import _ from 'lodash';
 import { hotPeriodicMono } from './rxutil';
 import { today } from './helper';
+import { PulseStore, PulseStoreImpl } from './stores';
+import DbConst from './stores/db-constants';
 
 /**
  * ServiceWorker serves as the gateway to the back end and is the service worker running in the background.
@@ -54,12 +55,17 @@ export class ServiceWorker {
   #limitCheckSubscription: Subscription;
 
   readonly #dbName = 'zen';
-  #pulseStore = new PulseStore(this.#dbName);
+  #pulseStore: PulseStore = new PulseStoreImpl(
+    this.#dbName,
+    DbConst.PULSE_STORENAME,
+    DbConst.ORIGIN_TIME_IDX,
+    DbConst.TIME_IDX,
+  );
 
   #todaysReportObservable: Observable<Report> = hotPeriodicMono(() => {
     const date = today();
     return this.#pulseStore
-      .query(date)
+      .findByDate(date)
       .pipe(map((x) => new Report(date, null, x)));
   });
 
@@ -78,7 +84,7 @@ export class ServiceWorker {
       .pipe(
         concatMap(({ payload, sendResponse }) =>
           this.#pulseStore
-            .query(payload.date as number)
+            .findByDate(payload.date as number)
             .pipe(tap((pulseArray) => sendResponse(pulseArray))),
         ),
       )

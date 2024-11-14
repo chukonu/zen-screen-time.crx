@@ -69,7 +69,7 @@ export default class DbUpgrader {
     }
 
     this.#indices.forEach((i) => {
-      this.#createIndex.apply(this, i);
+      this.#createIndex.call(this, store, ...i);
     });
   }
 }
