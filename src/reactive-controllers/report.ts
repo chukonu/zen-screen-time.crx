@@ -7,7 +7,8 @@ import { SECOND } from '../helper';
 import { DateInMillis } from '../events';
 import { OriginActivity } from '../side-panel/side-panel';
 import siteFilterObservable from '../side-panel/site-filter';
-import { Report } from '../domain';
+import { MessageType, Report } from '../domain';
+import { sendMessage } from '..';
 
 /**
  * Provides `Report`s on website activity.
@@ -26,10 +27,13 @@ export class ReportController implements ReactiveController {
     date: DateInMillis,
     callback: (response: OriginActivity[]) => void,
   ): void {
-    const message = { type: 'data_request', payload: { date } };
-    chrome.runtime.sendMessage(message, (response) =>
-      callback(response as OriginActivity[]),
-    );
+    sendMessage(MessageType.DataRequest, { date })
+      .then((data) => {
+        callback(data);
+      })
+      .catch((err) => {
+        console.error(date, err);
+      });
   }
 
   hostConnected(): void {

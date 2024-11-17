@@ -11,15 +11,19 @@ import { plusOneDay } from '../helper';
  * @see {@link PulseStore}
  */
 export default class PulseStoreImpl implements PulseStore {
+  private readonly db: Observable<IDBDatabase>;
+
   constructor(
-    private readonly db: string,
+    private readonly dbName: string,
     private readonly store: string,
     private readonly indexForUpsertOne: string,
     private readonly indexForFindByDate: string,
-  ) {}
+  ) {
+    this.db = openIndexedDb(this.dbName);
+  }
 
   upsertOne(pulse: Pulse): Observable<IDBValidKey> {
-    return openIndexedDb(this.db).pipe(
+    return this.db.pipe(
       transaction(this.store),
       upsertOne<Pulse>(
         this.store,
@@ -34,7 +38,7 @@ export default class PulseStoreImpl implements PulseStore {
   }
 
   findByDate(date: number): Observable<Pulse[]> {
-    return openIndexedDb(this.db).pipe(
+    return this.db.pipe(
       transaction(this.store),
       findMany<Pulse>(
         this.store,

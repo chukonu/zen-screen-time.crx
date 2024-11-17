@@ -4,5 +4,6 @@
  */
 
 export { default as findMany } from './operators/findMany';
+export { default as insertOne } from './operators/insertOne';
 export { default as upsertOne } from './operators/upsertOne';
 export { default as transaction } from './operators/transaction';

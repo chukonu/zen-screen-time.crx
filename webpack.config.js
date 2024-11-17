@@ -4,6 +4,7 @@ const _ = require('lodash');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { optimize } = require('webpack');
 
 const isProd = process.env.NODE_ENV === 'production';
 const outDir = path.join(__dirname, 'dist');
@@ -28,6 +29,10 @@ module.exports = {
   output: {
     filename: `${prefix}-[name].js`,
     path: outDir,
+  },
+  optimization: {
+    // Submit code as authored to review
+    minimize: false,
   },
   plugins: _.compact([
     new HtmlWebpackPlugin({

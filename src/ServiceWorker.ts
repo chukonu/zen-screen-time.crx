@@ -9,12 +9,18 @@ import {
 } from 'rxjs';
 import { Pulse } from './Pulse';
 import { receiveAndStorePulses } from './pulse-operations';
-import { MessageType, Report } from './domain';
+import { MessageType, Report, ZMessage } from './domain';
 import _ from 'lodash';
 import { hotPeriodicMono } from './rxutil';
 import { today } from './helper';
-import { PulseStore, PulseStoreImpl } from './stores';
-import DbConst from './stores/db-constants';
+import {
+  addLimitToStore,
+  DbConst,
+  LimitStore,
+  LimitStoreImpl,
+  PulseStore,
+  PulseStoreImpl,
+} from './stores';
 
 /**
  * ServiceWorker serves as the gateway to the back end and is the service worker running in the background.
@@ -22,37 +28,42 @@ import DbConst from './stores/db-constants';
  * @see {@link MessageType}
  */
 export class ServiceWorker {
-  #messages: Subject<{
-    type: MessageType;
-    payload: any;
-    sender: chrome.runtime.MessageSender;
-    sendResponse: (response?: any) => void;
-  }> = new Subject();
+  #messages: Subject<ZMessage<MessageType>> = new Subject();
 
   #dataRequests = this.#messages.pipe(
-    filter((x) => x.type === MessageType.DataRequest),
-    map(({ payload, sendResponse }) => ({ payload, sendResponse })),
+    filter(
+      (x): x is ZMessage<MessageType.DataRequest> =>
+        x.type === MessageType.DataRequest,
+    ),
   );
 
   #pulseMessages = this.#messages.pipe(
-    filter((x) => x.type === MessageType.Pulse),
+    filter(
+      (x): x is ZMessage<MessageType.Pulse> => x.type === MessageType.Pulse,
+    ),
     // just acknowledge
-    tap(({ sendResponse }) => sendResponse()),
+    tap(({ sendResponse }) => sendResponse({ ok: true })),
     map((x) => x.payload as Pulse),
   );
 
-  #limitChecks: Observable<{
-    site: string;
-    sendResponse: (response?: any) => void;
-  }> = this.#messages.pipe(
-    filter((x) => x.type === MessageType.LimitCheck),
-    // extract website identity:
-    map(({ sender, sendResponse }) => ({ site: sender.origin, sendResponse })),
+  #limitChecks = this.#messages.pipe(
+    filter(
+      (x): x is ZMessage<MessageType.LimitCheck> =>
+        x.type === MessageType.LimitCheck,
+    ),
+  );
+
+  #addLimit = this.#messages.pipe(
+    filter(
+      (x): x is ZMessage<MessageType.AddLimit> =>
+        x.type === MessageType.AddLimit,
+    ),
   );
 
   #dataRequestSubscription: Subscription;
   #pulseSubscription: Subscription;
   #limitCheckSubscription: Subscription;
+  #addLimitSubscription: Subscription;
 
   readonly #dbName = 'zen';
   #pulseStore: PulseStore = new PulseStoreImpl(
@@ -60,6 +71,11 @@ export class ServiceWorker {
     DbConst.PULSE_STORENAME,
     DbConst.ORIGIN_TIME_IDX,
     DbConst.TIME_IDX,
+  );
+
+  #limitStore: LimitStore = new LimitStoreImpl(
+    this.#dbName,
+    DbConst.LIMIT_STORENAME,
   );
 
   #todaysReportObservable: Observable<Report> = hotPeriodicMono(() => {
@@ -85,7 +101,7 @@ export class ServiceWorker {
         concatMap(({ payload, sendResponse }) =>
           this.#pulseStore
             .findByDate(payload.date as number)
-            .pipe(tap((pulseArray) => sendResponse(pulseArray))),
+            .pipe(tap((data) => sendResponse({ ok: true, data }))),
         ),
       )
       .subscribe({
@@ -96,15 +112,28 @@ export class ServiceWorker {
 
     this.#limitCheckSubscription = this.#limitChecks
       .pipe(
-        concatMap(({ site, sendResponse }) =>
+        concatMap(({ sender, sendResponse }) =>
           this.#todaysReportObservable.pipe(
             map((report) => report.durationBySite),
-            map((X) => _(X.value).filter((x) => x.origin === site)),
-            tap((x) => sendResponse(x)),
+            map((xs) =>
+              _(xs.value)
+                .filter((x) => x.origin === sender.origin)
+                .value(),
+            ),
+            tap((data) => sendResponse({ ok: true, data })),
           ),
         ),
       )
       .subscribe();
+
+    this.#addLimitSubscription = this.#addLimit
+      .pipe(addLimitToStore(this.#limitStore))
+      .subscribe({
+        complete: () =>
+          console.debug('Stopped processing new limits, which is unexpected.'),
+        error: (err) => console.error(err?.message ?? err),
+        next: (x) => console.debug('Added a new limit successfully.', x),
+      });
   }
 
   stop() {
@@ -116,6 +145,9 @@ export class ServiceWorker {
 
     this.#limitCheckSubscription?.unsubscribe();
     this.#limitCheckSubscription = undefined;
+
+    this.#addLimitSubscription?.unsubscribe();
+    this.#addLimitSubscription = undefined;
   }
 
   #setUpSidePanel() {

@@ -10,6 +10,16 @@ export enum MessageType {
   LimitCheck = 'limit_check',
 
   /**
+   * Add a new Limit to DB
+   */
+  AddLimit = 'add_limit',
+
+  /**
+   * Find limits for a given site.
+   */
+  FindLimitsForSite = 'find_limit_for_site',
+
+  /**
    * A record of activity.
    */
   Pulse = 'pulse',
