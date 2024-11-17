@@ -22,7 +22,6 @@ module.exports = {
   entry: {
     background: './src/background/index.ts',
     content: './src/content/index.js',
-    popup: './src/popup/index.js',
     settings: './src/settings/index.ts',
     sidepanel: './src/side-panel/index.ts',
   },
@@ -35,12 +34,6 @@ module.exports = {
     minimize: false,
   },
   plugins: _.compact([
-    new HtmlWebpackPlugin({
-      chunks: ['popup'],
-      filename: 'popup.html',
-      template: './src/popup/index.html',
-      title,
-    }),
     new HtmlWebpackPlugin({
       chunks: ['sidepanel'],
       filename: 'side-panel.html',
