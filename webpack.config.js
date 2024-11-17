@@ -22,7 +22,7 @@ module.exports = {
   entry: {
     background: './src/background/index.ts',
     content: './src/content/index.js',
-    settings: './src/settings/index.ts',
+    // settings: './src/settings/index.ts',
     sidepanel: './src/side-panel/index.ts',
   },
   output: {
@@ -42,14 +42,14 @@ module.exports = {
       inject: 'head',
       scriptLoading: 'defer',
     }),
-    new HtmlWebpackPlugin({
-      chunks: ['settings'],
-      filename: 'settings.html',
-      template: './src/settings/settings.html',
-      title: 'Settings',
-      inject: 'head',
-      scriptLoading: 'defer',
-    }),
+    // new HtmlWebpackPlugin({
+    //   chunks: ['settings'],
+    //   filename: 'settings.html',
+    //   template: './src/settings/settings.html',
+    //   title: 'Settings',
+    //   inject: 'head',
+    //   scriptLoading: 'defer',
+    // }),
     new CopyPlugin({
       patterns: [{ context: 'public', from: '**/*' }],
     }),

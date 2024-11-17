@@ -77,7 +77,7 @@ export class SiteView extends LitElement {
         <div class="header-title">${this.site}</div>
       </div>
       <div><zen-report-widget></zen-report-widget></div>
-      <div>${this._renderLimitsForSite()}</div>
-      <div><zen-default-button>Add Limit</zen-default-button></div>`;
+      <!-- <div>${this._renderLimitsForSite()}</div> -->
+      <!-- <div><zen-default-button>Add Limit</zen-default-button></div>-->`;
   }
 }

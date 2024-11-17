@@ -161,10 +161,10 @@ export class SidePanelHome extends LitElement {
     return html`<div class="heading">
         <zen-date-control></zen-date-control>
 
-        <zen-svg-icon-button
+        <!-- <zen-svg-icon-button
           .iconPath=${icons.settings}
           @click=${this.openSettings}
-        ></zen-svg-icon-button>
+        ></zen-svg-icon-button> -->
       </div>
       <div>
         <div class="total">
