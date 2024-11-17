@@ -82,7 +82,7 @@ class D3BarChart extends LitElement {
     }
 
     svg g.activity {
-      fill: skyblue;
+      fill: var(--zen-chart-fill-color);
     }
   `;
 
