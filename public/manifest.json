@@ -1,15 +1,21 @@
 {
     "name": "Zen Screen Time",
-    "description": "Track and limit time spent on websites",
+    "description": "Track how much time you spend on websites",
     "version": "1.0",
     "manifest_version": 3,
     "permissions": [
         "favicon",
         "sidePanel"
     ],
+    "icons": {
+        "16": "icon16.png",
+        "32": "icon32.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    },
     "action": {
         "default_title": "Click to open side panel",
-        "default_icon": "zen.png"
+        "default_icon": "icon64.png"
     },
     "background": {
         "service_worker": "zen-screen-time-background.js",
