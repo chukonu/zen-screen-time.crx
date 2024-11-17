@@ -14,7 +14,7 @@
         "128": "icon128.png"
     },
     "action": {
-        "default_title": "Click to open side panel",
+        "default_title": "Zen Screen Time",
         "default_icon": "icon64.png"
     },
     "background": {

@@ -167,7 +167,9 @@ export class SidePanelHome extends LitElement {
         ></zen-svg-icon-button>
       </div>
       <div>
-        <div class="total">${this._reportController.value?.durationText}</div>
+        <div class="total">
+          ${this._reportController.value?.durationText || 'No Data'}
+        </div>
       </div>
       <zen-bar-chart
         .data=${this._reportController.value?.hourlyActivity}

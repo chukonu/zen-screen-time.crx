@@ -173,7 +173,8 @@ function* barChartGenerator(
       marginLeft = 1,
     } = props();
 
-    const barWidth = Math.floor((width - marginLeft - marginRight) / 24 / 2);
+    const barWidth = Math.floor((width - marginLeft - marginRight) / 24 / 2),
+      dashSize = Math.floor((height - marginTop - marginBottom) / 40);
 
     svg.attr('width', width).attr('height', height);
 
@@ -289,15 +290,17 @@ function* barChartGenerator(
             .attr('class', GRIDLINE_X);
         }
         return gridlinesX
-          .attr('y2', height - marginTop - marginBottom + 7)
-          .attr('stroke-dasharray', '2')
+          .attr('y2', height - marginTop - marginBottom + barWidth)
+          .attr('stroke-dasharray', `${dashSize}`)
           .attr(
             'transform',
             `translate(0, ${-height + marginBottom + marginTop})`,
           );
       })
       .call((g) =>
-        g.selectAll('.tick text').attr('transform', 'translate(8, 1)'),
+        g
+          .selectAll('.tick text')
+          .attr('transform', `translate(${barWidth}, 1)`),
       );
 
     // track the values of certain properties
