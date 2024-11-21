@@ -22,7 +22,9 @@ From a technical perspective, this project experiments with some more recent API
 
 - Using **[D3](https://d3js.org/)** for animated data visualisation, e.g. making the chart responsive to viewport changes
 
-- Using **[decorators](https://www.typescriptlang.org/docs/handbook/decorators.html)** to centralise cross-cutting boilerplate code for, e.g. event listener registration
+- Using **[decorators](https://www.typescriptlang.org/docs/handbook/decorators.html)** to centralise cross-cutting boilerplate code, e.g. event listener registration
+
+  - With decorators, we can set up handlers for routes/messages in a declarative manner. This will hide away shared, lower level code such as initialisation and cleanup.
 
 - Using **[utility types](https://www.typescriptlang.org/docs/handbook/utility-types.html)** of TypeScript to make code more type-safe
 
