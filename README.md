@@ -1,8 +1,10 @@
 # Zen Screen Time
 
+[![Latest Version](https://img.shields.io/chrome-web-store/v/lnhoabacmnkaepaabhoiehgelofdmdlh)](https://chromewebstore.google.com/detail/zen-screen-time/lnhoabacmnkaepaabhoiehgelofdmdlh)
+
 This is a Chrome extension inspired by Screen Time from iOS. With it, you can view how much time you spend on each website in your desktop Chrome (done!) and set up time limits (in progress!).
 
-You can download a release from the [Releases](https://github.com/chukonu/zen-screen-time.crx/releases) page, [unpack and load it in developer mode](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked).
+You can [install it from the Chrome Web Store](https://chromewebstore.google.com/detail/zen-screen-time/lnhoabacmnkaepaabhoiehgelofdmdlh), or download a release from the [Releases](https://github.com/chukonu/zen-screen-time.crx/releases) page, [unpack and load it in developer mode](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked).
 
 ## Screenshot
 
