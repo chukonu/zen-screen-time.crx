@@ -1,11 +1,13 @@
+import { Task } from '@lit/task';
 import { css, html, LitElement, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { repeat } from 'lit/directives/repeat.js';
+import { switchMap } from 'rxjs';
+import { sendMessage } from '..';
+import { Limit, MessageType } from '../domain';
 import * as icons from '../icons';
 import { routeBack } from '../router/memory-router';
-import { Task } from '@lit/task';
-import { sendMessage } from '..';
-import { MessageType } from '../domain';
-import { repeat } from 'lit/directives/repeat.js';
+import { limitStore } from './side-panel';
 
 export type SiteViewProps = { date: number; site: string };
 
@@ -13,6 +15,13 @@ export function renderSiteView(props: SiteViewProps) {
   const date = props?.date;
   const site = props?.site;
   return html`<zen-site-view .date=${date} .site=${site}></zen-site-view>`;
+}
+
+function newLimit(origin: string, minutes: number = 15): Limit {
+  if (!origin) {
+    throw new Error('invalid value of origin');
+  }
+  return { pattern: origin, limit: minutes };
 }
 
 @customElement('zen-site-view')
@@ -67,6 +76,16 @@ export class SiteView extends LitElement {
     });
   }
 
+  private _addLimit = () => {
+    limitStore
+      .insertOne(newLimit(this.site))
+      .pipe(switchMap((_) => limitStore.findAll()))
+      .subscribe({
+        next: (limits) => console.debug(limits),
+        error: (err) => console.error(err),
+      });
+  };
+
   render() {
     return html`<div class="header">
         <zen-svg-icon-button
@@ -78,6 +97,10 @@ export class SiteView extends LitElement {
       </div>
       <div><zen-report-widget></zen-report-widget></div>
       <!-- <div>${this._renderLimitsForSite()}</div> -->
-      <!-- <div><zen-default-button>Add Limit</zen-default-button></div>-->`;
+      <div>
+        <zen-default-button @click=${this._addLimit}>
+          Add Limit
+        </zen-default-button>
+      </div>`;
   }
 }

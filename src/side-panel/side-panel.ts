@@ -12,6 +12,7 @@ import { renderSiteView, SiteViewProps } from './site-activity';
 import { SidePanelRoutes } from './side-panel-routes';
 import { ReportController } from '../reactive-controllers/report';
 import { updateSiteFilter } from './site-filter';
+import { DbConst, LimitStore, LimitStoreImpl } from '../stores';
 
 export type HourlyActivityDataPoint = {
   startTime: number;
@@ -23,6 +24,14 @@ export type OriginActivity = {
   startTime: number;
   duration: number;
 };
+
+/**
+ * An instance of `LimitStore` for use in side panel.
+ */
+export const limitStore: LimitStore = new LimitStoreImpl(
+  DbConst.DB_NAME,
+  DbConst.LIMIT_STORENAME,
+);
 
 @customElement('zen-router-outlet')
 export class ZenRouter extends MemoryRouter {

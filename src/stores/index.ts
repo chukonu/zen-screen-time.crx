@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 import { Pulse } from '../Pulse';
-import { Limit } from '../domain';
+import { Limit, NewLimit } from '../domain';
 
 export { default as DbConst } from './db-constants';
 
@@ -19,5 +19,11 @@ export interface PulseStore {
 
 export interface LimitStore {
   findAll(): Observable<Iterable<Limit>>;
-  insertOne(limit: Limit): Observable<IDBValidKey>;
+  /**
+   * Find any limits that satisfy the query.
+   */
+  findMany(query: Record<string, ComparisonQuery>): Observable<Iterable<Limit>>;
+  insertOne(limit: NewLimit): Observable<IDBValidKey>;
 }
+
+export type ComparisonQuery = { $lte?: number };

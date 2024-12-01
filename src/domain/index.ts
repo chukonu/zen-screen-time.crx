@@ -5,10 +5,10 @@
 
 import { Pulse } from '../Pulse';
 import { OriginActivity } from '../side-panel/side-panel';
-import Limit from './limit';
+import { Limit } from './limit';
 import MessageType from './message-type';
 
-export { default as Limit } from './limit';
+export { Limit, NewLimit } from './limit';
 export { default as Report } from './report';
 
 /**
